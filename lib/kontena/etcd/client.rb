@@ -24,6 +24,10 @@ module Kontena::Etcd
       )
     end
 
+    def uri
+      @uri
+    end
+
     # Query and parse the etcd daemon version
     def version
       @version ||= JSON.parse(api_execute('/version', :get).body)
