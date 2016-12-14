@@ -16,4 +16,6 @@ Gem::Specification.new do |s|
 
   s.executables   = []
   s.require_paths = ['lib']
+
+  s.add_dependency 'etcd', '~> 0.3.0'
 end
