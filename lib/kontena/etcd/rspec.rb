@@ -1,13 +1,16 @@
 require 'kontena/etcd/client'
+require 'kontena/etcd/model'
 require 'kontena/etcd/test'
 
-RSpec.shared_context 'etcd', etcd: true do
+require 'webmock'
+
+RSpec.shared_context 'etcd' do
   # etcd server for test
   let :etcd_server do
     if ENV['ETCD_ENDPOINT']
-      Kontena::Etcd::Test::TestServer.new('/kontena/ipam')
+      Kontena::Etcd::Test::TestServer.new('/kontena')
     else
-      Kontena::Etcd::Test::FakeServer.new('/kontena/ipam')
+      Kontena::Etcd::Test::FakeServer.new('/kontena')
     end
   end
 
@@ -22,6 +25,9 @@ RSpec.configure do |config|
   config.before :each do
     Kontena::Etcd::Model.etcd = instance_double(Kontena::Etcd::Client)
   end
+
+  # provide etcd and etcd_server for examples
+  config.include_context 'etcd', :etcd => true
 
   config.before :each, etcd: true do
     if etcd_endpoint = ENV['ETCD_ENDPOINT']
