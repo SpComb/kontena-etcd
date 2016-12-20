@@ -74,7 +74,7 @@ module Kontena::Etcd
         }
         "#{op} #{key} #{opts}: directory@#{response.etcd_index}: #{names.join ' '}"
       else
-        "#{op} #{key} #{opts}: node@#{response.etcd_index}: #{response.node.value}"
+        "#{op} #{key} #{opts}: #{response.action} node@#{response.etcd_index}: #{response.node.value}"
       end
     end
 
