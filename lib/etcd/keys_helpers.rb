@@ -13,4 +13,15 @@ module Etcd::Keys
       yield node.key[prefix.length..-1], node
     end
   end
+
+  # Create or update a new key
+  def set(key, **opts)
+    response = api_execute(key_endpoint + key, :put, params: opts)
+    Etcd::Response.from_http_response(response)
+  end
+
+  # Refresh an existing key with a new TTL
+  def refresh(key, ttl)
+    set(key, refresh: true, ttl: ttl, prevExist: true)
+  end
 end
