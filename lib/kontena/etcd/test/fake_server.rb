@@ -292,8 +292,10 @@ module Kontena::Etcd::Test
       end
     end
 
-    def set(key, prevExist: nil, dir: nil, value: nil)
+    def set(key, prevExist: nil, dir: nil, value: nil, ttl: nil, refresh: nil)
       key, node = read(key)
+
+      raise Error.new(400, 211, key), "Value provided on refresh" if refresh && value
 
       if node
         raise Error.new(412, 105, key), "Key already exists" if prevExist == false
@@ -302,9 +304,15 @@ module Kontena::Etcd::Test
         action = :set
         prev_node = node.serialize
 
-        update node, value
+        if refresh
+          # TODO: refresh TTL
+          # Do not log!
+        else
+          update node, value
+          log! action, node
+        end
       else
-        raise Error.new(404, 100, key), "Key not found" if prevExist == true
+        raise Error.new(404, 100, key), "Key not found" if prevExist == true || refresh
 
         action = prevExist == false ? :create : :set
         prev_node = nil
@@ -314,9 +322,9 @@ module Kontena::Etcd::Test
         else
           write key, value: value
         end
-      end
 
-      log! action, node
+        log! action, node
+      end
 
       return {
         'action' => action,
@@ -372,6 +380,16 @@ module Kontena::Etcd::Test
         end
       end
 
+      def param_int(name)
+        case value = params[name]
+        when nil
+          nil
+        else
+          # XXX: HTTP 400
+          Integer(value)
+        end
+      end
+
       def respond(status, object)
         headers = {
           'Content-Type' => 'application/json',
@@ -404,6 +422,8 @@ module Kontena::Etcd::Test
             prevExist: param_bool('prevExist'),
             dir: param_bool('dir'),
             value: params['value'],
+            ttl: param_int('ttl'),
+            refresh: param_bool('refresh'),
           )
         rescue Error => error
           respond error.status, error

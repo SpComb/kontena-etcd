@@ -121,5 +121,15 @@ describe Kontena::Etcd::Test::FakeServer do
       )
       expect(etcd_server.logs).to eq [[:set, '/kontena/test/quux']]
     end
+
+    it 'refreshes a node' do
+      etcd.set('/kontena/test/quux', value: '{"quux": true}', ttl: 30)
+      etcd.refresh('/kontena/test/quux', 60)
+
+      expect(etcd_server.nodes).to eq(
+        '/kontena/test/quux' => { 'quux' => true },
+      )
+      expect(etcd_server.logs).to eq [[:set, '/kontena/test/quux']]
+    end
   end
 end
