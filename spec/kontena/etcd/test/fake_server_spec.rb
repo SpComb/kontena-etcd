@@ -1,6 +1,23 @@
-require 'kontena/etcd/test/fake_server'
+require 'kontena/etcd/test'
 
-describe Kontena::Etcd::Test::FakeServer, :etcd => true do
+describe Kontena::Etcd::Test::FakeServer do
+  let :etcd_server do
+    Kontena::Etcd::Test::FakeServer.new('/kontena')
+  end
+
+  let :etcd do
+    Kontena::Etcd::Client.new
+  end
+
+  before :each do
+    WebMock.stub_request(:any, /localhost:2379/).to_rack(etcd_server.api)
+
+    # clear etcd database
+    etcd_server.reset!
+
+    Kontena::Etcd::Model.etcd = etcd
+  end
+
   context 'for a simple tree' do
     before do
       etcd_server.load!(
@@ -83,6 +100,26 @@ describe Kontena::Etcd::Test::FakeServer, :etcd => true do
         '/kontena/test/test1',
         '/kontena/test/test2',
       ]
+    end
+  end
+
+  describe '#set' do
+    it 'logs a create event when using prevExist=false' do
+      etcd.set('/kontena/test/quux', value: '{"quux": false}', prevExist: false)
+
+      expect(etcd_server.nodes).to eq(
+        '/kontena/test/quux' => { 'quux' => false },
+      )
+      expect(etcd_server.logs).to eq [[:create, '/kontena/test/quux']]
+    end
+
+    it 'logs a set event when not using prevExist' do
+      etcd.set('/kontena/test/quux', value: '{"quux": true}')
+
+      expect(etcd_server.nodes).to eq(
+        '/kontena/test/quux' => { 'quux' => true },
+      )
+      expect(etcd_server.logs).to eq [[:set, '/kontena/test/quux']]
     end
   end
 end

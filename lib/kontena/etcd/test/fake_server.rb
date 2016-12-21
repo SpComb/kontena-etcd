@@ -295,21 +295,18 @@ module Kontena::Etcd::Test
     def set(key, prevExist: nil, dir: nil, value: nil)
       key, node = read(key)
 
-      if prevExist == false && node
-        raise Error.new(412, 105, key), "Key already exists"
-      elsif prevExist == true && !node
-        raise Error.new(404, 100, key), "Key not found"
-      end
+      if node
+        raise Error.new(412, 105, key), "Key already exists" if prevExist == false
+        raise Error.new(403, 102, key), "Not a file" if dir
 
-      if dir && node
-        raise Error.new(403, 102, key), "Not a file"
-      elsif node
         action = :set
         prev_node = node.serialize
 
         update node, value
       else
-        action = :create
+        raise Error.new(404, 100, key), "Key not found" if prevExist == true
+
+        action = prevExist == false ? :create : :set
         prev_node = nil
 
         node = if dir
