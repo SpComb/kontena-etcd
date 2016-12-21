@@ -1,3 +1,9 @@
+PATH
+  remote: .
+  specs:
+    kontena-etcd (0.1.0)
+      etcd (~> 0.3.0)
+
 GEM
   remote: https://rubygems.org/
   specs:
@@ -44,7 +50,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  etcd!
+  kontena-etcd!
   rack-test!
   rspec!
   sinatra!

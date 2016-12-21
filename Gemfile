@@ -6,3 +6,5 @@ source 'https://rubygems.org' do
     gem 'webmock'
   end
 end
+
+gemspec
