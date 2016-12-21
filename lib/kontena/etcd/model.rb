@@ -199,7 +199,7 @@ module Kontena::Etcd::Model
     #
     # @return [Kontena::Etcd::Client]
     def etcd
-      Model.etcd
+      Kontena::Etcd::Model.etcd
     end
     def etcd_schema
       @etcd_schema
