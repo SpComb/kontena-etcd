@@ -1,3 +1,5 @@
+require 'etcd'
+
 module Etcd::Keys
   # Iterate through key => value pairs directly under given preifx
   #

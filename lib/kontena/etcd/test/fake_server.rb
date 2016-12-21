@@ -1,5 +1,3 @@
-require 'kontena/etcd/test/server_base'
-
 require 'sinatra'
 
 # Fake etcd /v2/keys API implementation for application testing.

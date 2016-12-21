@@ -1,6 +1,3 @@
-require 'kontena/etcd/client'
-require 'kontena/etcd/test/server_base'
-
 module Kontena::Etcd::Test
   # etcd adapter for managing an etcd server for tests
   class TestServer < ServerBase

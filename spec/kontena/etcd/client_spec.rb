@@ -1,5 +1,3 @@
-require 'kontena/etcd/client'
-
 describe Kontena::Etcd::Client do
   let :version do
     {"etcdserver"=>"2.3.3", "etcdcluster"=>"2.3.0"}

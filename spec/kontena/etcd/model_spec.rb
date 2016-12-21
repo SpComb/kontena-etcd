@@ -1,6 +1,3 @@
-require 'kontena/json'
-require 'kontena/etcd/model'
-
 describe Kontena::Etcd::Model do
   describe Kontena::Etcd::Model::Schema do
     it 'rejects a non-absolute path' do

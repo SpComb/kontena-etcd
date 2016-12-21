@@ -1,5 +1,3 @@
-require 'kontena/etcd/client'
-require 'kontena/etcd/model'
 require 'kontena/etcd/test'
 
 require 'webmock'
