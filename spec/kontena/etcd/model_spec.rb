@@ -436,6 +436,22 @@ describe Kontena::Etcd::Model do
         expect{TestEtcd.rmdir()}.to raise_error(TestEtcd::NotFound)
       end
     end
+
+    describe '#watch' do
+      it "recursively walks the prefix from etcd", :etcd => true do
+        etcd_server.load!(
+          '/kontena/test/test1' => { 'field' => "value 1" },
+          '/kontena/test/test2' => { 'field' => "value 2" },
+        )
+
+        TestEtcd.watch do |collection|
+          expect(collection.map{|object| object.etcd_key}).to contain_exactly('/kontena/test/test1', '/kontena/test/test2')
+
+          # XXX: do not continue on to actually watch...
+          break
+        end
+      end
+    end
   end
 
   context 'for a complex model' do

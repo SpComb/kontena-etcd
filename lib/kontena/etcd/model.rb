@@ -173,18 +173,16 @@ module Kontena::Etcd::Model
     #
     # @param node_path [String] etcd path
     # @return [Array<String>] key values
-    def parse(node_path)
-      path = node_path[1..-1] while node_part.start_with '/' # lstrip '/'
+    def parse(path)
+      path = path[1..-1] while path.start_with? '/' # lstrip '/'
+      path = path.split('/')
       key = []
       for part in @path
+        value = path.shift
+
         if part.is_a? String
-          if path.start_with(part)
-            path = path[part.length..-1]
-          else
-            raise "Incorrect path for #{self} at #{part}: #{node_path} at #{part}"
-          end
+          raise "Incorrect path for #{self} at #{value}: should be #{part}" unless value == part
         elsif part.is_a? Symbol
-          value, path = path.split('/', 1)
           key << value
         else
           raise "Invalid path part: #{part}"
@@ -192,6 +190,41 @@ module Kontena::Etcd::Model
       end
       key
     end
+  end
+
+  # A set of multiple model objects
+  #
+  # @attr objects [Hash{String => Model}]
+  class Collection
+    def initialize
+      @objects = { }
+    end
+
+    def load!(key, object)
+      @objects[key] = object
+    end
+
+    def update!(key, action, object = nil)
+      case action
+      when 'create', 'set', 'update'
+        @objects[key] = object
+      when 'delete', 'expire'
+        @objects.delete(key)
+      else
+        raise "Unkown etcd action=#{action} on key=#{key}"
+      end
+    end
+
+    # Enumerable interface
+    def size
+      @objects.size
+    end
+
+    def each(&block)
+      @objects.each_value(&block)
+    end
+    include Enumerable
+
   end
 
   module ClassMethods
@@ -371,6 +404,58 @@ module Kontena::Etcd::Model
     rescue Etcd::DirNotEmpty => error
       raise const_get(:Conflict), "Removing non-empty directory #{error.cause}@#{error.index}: #{error.message}"
     end
+
+    # Walk model objects from recursive nodes
+    #
+    # XXX: assumes that all nodes are model nodes
+    def _walk(node, &block)
+      if node.directory?
+        node.children.each do |node|
+          _walk(node, &block)
+        end
+      else
+        object = new(*@etcd_schema.parse(node.key))
+        object.load! node
+
+        yield node.key, object
+      end
+    end
+
+    # Watch all objects under the given (partial) key prefix.
+    #
+    # XXX: the prefix must only contain model nodes
+    #
+    # @yield [objects]
+    # @yieldparam objects [Hash{String => Model}]
+    def watch(*key)
+      collection = Collection.new
+      prefix = @etcd_schema.prefix(*key)
+
+      # initial sync
+      root_node = etcd.get(prefix, recursive: true)
+
+      _walk(root_node) do |path, object|
+        collection.load! path, object
+      end
+
+      yield collection
+
+      # watch
+      index = root_node.etcd_index
+
+      loop do
+        response = etcd.watch(prefix, recursive: true, waitIndex: index + 1)
+
+        object = new(*@etcd_schema.parse(response.key))
+        object.load! response.node if response.value && !response.value.empty? # XXX: when deleted?
+
+        collection.update! response.key, response.action, object
+
+        yield collection
+
+        index = response.node.modified_index
+      end
+    end
   end
 
   def self.included(base)
@@ -410,12 +495,16 @@ module Kontena::Etcd::Model
 
   include Comparable
 
-  # Compute etcd path, using key value
+  # Compute etcd path, using etcd node, or compuated key value from schema and initialize args
   #
   # @return [String] etcd path, with key values
   def etcd_key
-    self.class.etcd_schema.path_with_keys do |sym|
-      self.instance_variable_get("@#{sym}")
+    if @etcd_node
+      @etcd_node.key
+    else
+      self.class.etcd_schema.path_with_keys do |sym|
+        self.instance_variable_get("@#{sym}")
+      end
     end
   end
 
