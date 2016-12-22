@@ -55,6 +55,13 @@ RSpec.configure do |config|
   # Use WebMock
   WebMock.disable_net_connect!
 
+  # Timeout examples
+  config.around(:each) do |example|
+    Timeout::timeout(5) do
+      example.run
+    end
+  end
+
 # The settings below are suggested to provide a good initial experience
 # with RSpec, but feel free to customize to your heart's content.
 =begin
