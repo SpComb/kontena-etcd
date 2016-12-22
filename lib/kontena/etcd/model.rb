@@ -200,22 +200,32 @@ module Kontena::Etcd::Model
       @objects = { }
     end
 
-    def load!(key, object)
-      @objects[key] = object
+    def update!(key, object)
+      if object
+        object.freeze
+
+        @objects[key] = object
+      else
+        @objects.delete(key)
+      end
     end
 
-    def update!(key, action, object = nil)
+    def apply!(key, action, object = nil)
       case action
       when 'create', 'set', 'update'
-        @objects[key] = object
+        update! key, object
       when 'delete', 'expire'
-        @objects.delete(key)
+        update! key, nil
       else
         raise "Unkown etcd action=#{action} on key=#{key}"
       end
     end
 
     # Enumerable interface
+    def to_h
+      @objects.clone
+    end
+
     def size
       @objects.size
     end
@@ -435,7 +445,7 @@ module Kontena::Etcd::Model
       root_node = etcd.get(prefix, recursive: true)
 
       _walk(root_node) do |path, object|
-        collection.load! path, object
+        collection.update! path, object
       end
 
       yield collection
@@ -449,7 +459,7 @@ module Kontena::Etcd::Model
         object = new(*@etcd_schema.parse(response.key))
         object.load! response.node if response.value && !response.value.empty? # XXX: when deleted?
 
-        collection.update! response.key, response.action, object
+        collection.apply! response.key, response.action, object
 
         yield collection
 
