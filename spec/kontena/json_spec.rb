@@ -9,10 +9,8 @@ describe Kontena::JSON::Model do
 
     json_attr :str, omitnil: true
     json_attr :int, name: 'number', omitnil: true
-    json_attr :bool, default: false
+    json_attr :bool, default: false, readonly: true
     json_attr :ipaddr, type: IPAddr
-
-    attr_accessor :str, :int, :bool, :ipaddr
 
     def initialize(**attrs)
       initialize_json(**attrs)
@@ -40,6 +38,13 @@ describe Kontena::JSON::Model do
     expect(subject.int).to eq 2
     expect(subject.bool).to eq true
     expect(subject.ipaddr).to eq IPAddr.new("127.0.0.1")
+  end
+
+  it 'makes attributes readonly' do
+    subject = TestJSON.new(str: "string", int: 2, bool: true, ipaddr: IPAddr.new("127.0.0.1"))
+
+    expect{subject.str = "string 2"}.to_not raise_error
+    expect{subject.bool = false}.to raise_error(NoMethodError)
   end
 
   it 'compares equal' do

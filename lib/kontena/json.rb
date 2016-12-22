@@ -70,9 +70,15 @@ module Kontena::JSON
       # @see JSONAttr
       # @param sym [Symbol] instance variable
       # @param opts [Hash] JSONAttr options
-      def json_attr(sym, **options)
+      def json_attr(sym, readonly: false, **options)
         @json_attrs ||= {}
         @json_attrs[sym] = Attribute.new(sym, **options)
+
+        if readonly
+          attr_reader sym
+        else
+          attr_accessor sym
+        end
       end
     end
 
