@@ -63,15 +63,18 @@ class Kontena::Etcd::Client < Etcd::Client
   # @param response [Etcd::Response]
   # @return [String]
   def log_response(op, key, opts, response)
+    path = response.node.key
+    path += '/' if response.node.directory?
+
     if response.node.directory?
       names = response.node.children.map{ |node|
         name = File.basename(node.key)
         name += '/' if node.directory?
         name
       }
-      "#{op} #{key} #{opts}: directory@#{response.etcd_index}: #{names.join ' '}"
+      "#{op} #{key} #{opts}: #{response.action} #{path}@#{response.etcd_index}: #{names.join ' '}"
     else
-      "#{op} #{key} #{opts}: #{response.action} node@#{response.etcd_index}: #{response.node.value}"
+      "#{op} #{key} #{opts}: #{response.action} #{path}@#{response.etcd_index}: #{response.node.value}"
     end
   end
 
