@@ -9,7 +9,7 @@ class Kontena::Etcd::Client < Etcd::Client
 
   attr_accessor :uri
 
-  def initialize(env = {})
+  def initialize(env = ENV)
     # we only support a single endpoint, which is a URL
     endpoint = env.fetch('ETCD_ENDPOINT', ENDPOINT).split(',')[0]
     @uri = URI(endpoint)
