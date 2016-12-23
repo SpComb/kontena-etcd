@@ -72,9 +72,9 @@ class Kontena::Etcd::Client < Etcd::Client
         name += '/' if node.directory?
         name
       }
-      "#{op} #{key} #{opts}: #{response.action} #{path}@#{response.etcd_index}: #{names.join ' '}"
+      "#{op} #{key} #{opts}: #{response.action} #{path}@#{response.node.modified_index}: #{names.join ' '}"
     else
-      "#{op} #{key} #{opts}: #{response.action} #{path}@#{response.etcd_index}: #{response.node.value}"
+      "#{op} #{key} #{opts}: #{response.action} #{path}@#{response.node.modified_index}: #{response.node.value}"
     end
   end
 

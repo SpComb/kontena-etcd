@@ -21,7 +21,7 @@ describe Kontena::Etcd::Client do
 
     it 'logs requests for a node' do
       response = instance_double(Net::HTTPResponse,
-        body: '{"action": "get", "node": {"key": "/test", "value": "test"}}',
+        body: '{"action": "get", "node": {"key": "/test", "modifiedIndex": 3, "value": "test"}}',
       )
       expect(response).to receive(:[]).with('X-Etcd-Index').and_return('4')
       expect(response).to receive(:[]).with('X-Raft-Index').and_return('3')
@@ -29,12 +29,12 @@ describe Kontena::Etcd::Client do
 
       response = Etcd::Response.from_http_response(response)
 
-      expect(subject.log_response(:get, '/test', {}, response)).to eq "get /test {}: get /test@4: test"
+      expect(subject.log_response(:get, '/test', {}, response)).to eq "get /test {}: get /test@3: test"
     end
 
     it 'logs requests for a directory' do
       response = instance_double(Net::HTTPResponse,
-        body: {'action' => 'get', 'node' => { 'key' => "/test", 'dir' => true, 'nodes' => [
+        body: {'action' => 'get', 'node' => { 'key' => "/test", 'dir' => true, "modifiedIndex": 3, 'nodes' => [
           { 'key' => "/test/bar", 'value' => 'bar' },
           { 'key' => "/test/foo", 'value' => 'foo' },
           { 'key' => "/test/subdir", 'dir' => true, 'nodes' => [ ] },
@@ -46,7 +46,7 @@ describe Kontena::Etcd::Client do
 
       response = Etcd::Response.from_http_response(response)
 
-      expect(subject.log_response(:get, '/test', {}, response)).to eq "get /test {}: get /test/@4: bar foo subdir/"
+      expect(subject.log_response(:get, '/test', {}, response)).to eq "get /test {}: get /test/@3: bar foo subdir/"
     end
 
     it 'logs errors' do
