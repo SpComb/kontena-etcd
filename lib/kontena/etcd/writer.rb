@@ -25,12 +25,16 @@ class Kontena::Etcd::Writer
   def update(nodes)
     nodes.each_pair do |key, value|
       if value != @nodes[key]
+        logger.info "set #{key}: #{value}"
+
         @client.set(key, value: value, ttl: @ttl)
       end
     end
 
     @nodes.each do |key, value|
       if !nodes[key]
+        logger.info "delete #{key} (#{value})"
+
         @client.delete(key)
       end
     end
