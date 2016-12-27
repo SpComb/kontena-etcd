@@ -113,5 +113,17 @@ describe Kontena::Etcd::Writer do
         )
       end
     end
+
+    describe '#clear' do
+      it "removes the node" do
+        subject.clear
+
+        expect(etcd_server.logs).to eq [
+          [:set, '/kontena/test1'],
+          [:delete, '/kontena/test1'],
+        ]
+        expect(etcd_server.nodes).to eq({})
+      end
+    end
   end
 end

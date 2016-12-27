@@ -45,10 +45,15 @@ class Kontena::Etcd::Writer
   def refresh
     raise ArgumentError, "Refresh without TTL" unless @ttl
 
-    logger.debug "refresh #nodes=#{@nodes.size} with ttl=#{@ttl}"
-
     @nodes.each do |key, value|
       @client.refresh(key, @ttl)
+    end
+  end
+
+  # Clear any written nodes from etcd
+  def clear
+    @nodes.each do |key, value|
+      @client.delete(key)
     end
   end
 end
