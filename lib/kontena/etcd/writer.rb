@@ -14,7 +14,7 @@ class Kontena::Etcd::Writer
     @client = Kontena::Etcd::Client.new
     @ttl = ttl
 
-    logger.info "Connected to etcd=#{@client.uri} with version=#{@client.version}"
+    logger.debug "connected to etcd=#{@client.uri} with version=#{@client.version}"
   end
 
   def ttl

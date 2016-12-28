@@ -9,5 +9,6 @@ end
 
 require 'kontena/etcd/logging'
 require 'kontena/etcd/client'
+require 'kontena/etcd/reader'
 require 'kontena/etcd/writer'
 require 'kontena/etcd/model'

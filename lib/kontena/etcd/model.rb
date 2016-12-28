@@ -192,51 +192,6 @@ module Kontena::Etcd::Model
     end
   end
 
-  # A set of multiple model objects
-  #
-  # @attr objects [Hash{String => Model}]
-  class Collection
-    def initialize
-      @objects = { }
-    end
-
-    def update!(key, object)
-      if object
-        object.freeze
-
-        @objects[key] = object
-      else
-        @objects.delete(key)
-      end
-    end
-
-    def apply!(key, action, object = nil)
-      case action
-      when 'create', 'set', 'update'
-        update! key, object
-      when 'delete', 'expire'
-        update! key, nil
-      else
-        raise "Unkown etcd action=#{action} on key=#{key}"
-      end
-    end
-
-    # Enumerable interface
-    def to_h
-      @objects.clone
-    end
-
-    def size
-      @objects.size
-    end
-
-    def each(&block)
-      @objects.each_value(&block)
-    end
-    include Enumerable
-
-  end
-
   module ClassMethods
     # Global Kontena::Etcd::Client
     #
@@ -415,56 +370,20 @@ module Kontena::Etcd::Model
       raise const_get(:Conflict), "Removing non-empty directory #{error.cause}@#{error.index}: #{error.message}"
     end
 
-    # Walk model objects from recursive nodes
-    #
-    # XXX: assumes that all nodes are model nodes
-    def _walk(node, &block)
-      if node.directory?
-        node.children.each do |node|
-          _walk(node, &block)
-        end
-      else
-        object = new(*@etcd_schema.parse(node.key))
-        object.load! node
-
-        yield node.key, object
-      end
-    end
-
     # Watch all objects under the given (partial) key prefix.
     #
     # XXX: the prefix must only contain model nodes
     #
     # @yield [objects]
     # @yieldparam objects [Hash{String => Model}]
-    def watch(*key)
-      collection = Collection.new
-      prefix = @etcd_schema.prefix(*key)
-
-      # initial sync
-      root_node = etcd.get(prefix, recursive: true)
-
-      _walk(root_node) do |path, object|
-        collection.update! path, object
+    def watch(*key, &block)
+      reader = Kontena::Etcd::Reader.new(@etcd_schema.prefix(*key)) do |node|
+        # XXX: skip objects that do not match the schema
+        object = new(*@etcd_schema.parse(node.key))
+        object.load! node unless node.value.empty? # do not load when deleted and value is empty
       end
 
-      yield collection
-
-      # watch
-      index = root_node.etcd_index
-
-      loop do
-        response = etcd.watch(prefix, recursive: true, waitIndex: index + 1)
-
-        object = new(*@etcd_schema.parse(response.key))
-        object.load! response.node if response.value && !response.value.empty? # XXX: when deleted?
-
-        collection.apply! response.key, response.action, object
-
-        yield collection
-
-        index = response.node.modified_index
-      end
+      reader.run(&block)
     end
   end
 

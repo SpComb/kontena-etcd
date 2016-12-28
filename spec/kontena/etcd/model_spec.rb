@@ -447,7 +447,7 @@ describe Kontena::Etcd::Model do
         TestEtcd.watch do |collection|
           expect(collection.map{|object| object.etcd_key}).to contain_exactly('/kontena/test/test1', '/kontena/test/test2')
 
-          # XXX: do not continue on to actually watch...
+          # TODO: also test changes
           break
         end
       end
