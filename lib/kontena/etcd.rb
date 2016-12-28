@@ -1,4 +1,5 @@
 require 'etcd/keys_helpers'
+require 'etcd/node_helpers'
 
 module Kontena
   module Etcd
