@@ -444,11 +444,20 @@ describe Kontena::Etcd::Model do
           '/kontena/test/test2' => { 'field' => "value 2" },
         )
 
-        TestEtcd.watch do |collection|
-          expect(collection.map{|object| object.etcd_key}).to contain_exactly('/kontena/test/test1', '/kontena/test/test2')
+        step = 0
 
-          # TODO: also test changes
-          break
+        TestEtcd.watch do |collection|
+          case step += 1
+          when 1
+            expect(collection.map{|object| object.etcd_key}).to contain_exactly('/kontena/test/test1', '/kontena/test/test2')
+
+            etcd.delete '/kontena/test/test2'
+
+          when 2
+            expect(collection.map{|object| object.etcd_key}).to contain_exactly('/kontena/test/test1')
+
+            break
+          end
         end
       end
     end

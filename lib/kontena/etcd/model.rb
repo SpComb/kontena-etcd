@@ -380,7 +380,7 @@ module Kontena::Etcd::Model
       reader = Kontena::Etcd::Reader.new(@etcd_schema.prefix(*key)) do |node|
         # XXX: skip objects that do not match the schema
         object = new(*@etcd_schema.parse(node.key))
-        object.load! node unless node.value.empty? # do not load when deleted and value is empty
+        object.load! node unless node.value.nil? # do not load when deleted
       end
 
       reader.run(&block)
