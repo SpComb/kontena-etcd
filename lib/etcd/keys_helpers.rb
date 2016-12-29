@@ -23,7 +23,7 @@ module Etcd::Keys
   end
 
   # Refresh an existing key with a new TTL
-  def refresh(key, ttl)
-    set(key, refresh: true, ttl: ttl, prevExist: true)
+  def refresh(key, ttl, **opts)
+    set(key, refresh: true, ttl: ttl, prevExist: true, **opts)
   end
 end
