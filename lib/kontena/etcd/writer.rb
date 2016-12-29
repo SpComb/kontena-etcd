@@ -17,6 +17,7 @@ class Kontena::Etcd::Writer
     logger.debug "connected to etcd=#{@client.uri} with version=#{@client.version}"
   end
 
+  # @return [Integer, nil]
   def ttl
     @ttl
   end
@@ -24,10 +25,12 @@ class Kontena::Etcd::Writer
   # Update set of path => value nodes to etcd
   def update(nodes)
     nodes.each_pair do |key, value|
-      if value != @nodes[key]
+      if !(node = @nodes[key]) || value != node.value
         logger.info "set #{key}: #{value}"
 
-        @client.set(key, value: value, ttl: @ttl)
+        response = @client.set(key, value: value, ttl: @ttl)
+
+        @nodes[key] = response.node
       end
     end
 
@@ -36,21 +39,23 @@ class Kontena::Etcd::Writer
         logger.info "delete #{key} (#{value})"
 
         @client.delete(key)
+        @nodes.delete(key)
       end
     end
-
-    # XXX: concurrent with refresh?
-    @nodes = nodes
   end
 
-  # Refresh currently active etcd nodes when using a TTL
+  # Refresh currently active etcd nodes
   #
-  # @raise [Etcd::KeyNotFound] if a node has already expired before we refresh it
+  # Only applicable when using a TTL
+  #
+  # @raise [Etcd::KeyNotFound] node has already expired before we refresh it
+  # @raise [Etcd::TestFailed] node has been modified
   def refresh
     raise ArgumentError, "Refresh without TTL" unless @ttl
 
-    @nodes.each do |key, value|
-      @client.refresh(key, @ttl)
+    @nodes.each do |key, node|
+      # value should not change
+      @nodes[key] = @client.refresh(key, @ttl, prevValue: node.value).node
     end
   end
 
@@ -59,5 +64,6 @@ class Kontena::Etcd::Writer
     @nodes.each do |key, value|
       @client.delete(key)
     end
+    @nodes = { }
   end
 end

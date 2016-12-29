@@ -100,8 +100,9 @@ describe Kontena::Etcd::Writer do
       end
     end
 
+    # using refresh breaks watch against test etcd (timeout)
+    # TODO: testing TTLs also requires the fake etcd clock
     describe '#refresh' do
-      # using refresh breaks watch against test etcd (timeout)
       it "updates the node", :test_etcd => false do
         subject.refresh
 
@@ -111,6 +112,24 @@ describe Kontena::Etcd::Writer do
         expect(etcd_server.nodes).to eq(
           '/kontena/test1' => { 'test' => 1 },
         )
+      end
+
+      it "raises if the node has expired", :fake_etcd => true do
+        etcd_server.tick! 30.0
+
+        expect{subject.refresh}.to raise_error(Etcd::KeyNotFound)
+
+        expect(etcd_server.logs).to eq [
+          [:set, '/kontena/test1'],
+          [:expire, '/kontena/test1'],
+        ]
+        expect(etcd_server.nodes).to eq({})
+      end
+
+      it "raises if the node has been modified", :fake_etcd => true do
+        etcd.set '/kontena/test1', value: 'lollerskates'
+
+        expect{subject.refresh}.to raise_error(Etcd::TestFailed)
       end
     end
 
