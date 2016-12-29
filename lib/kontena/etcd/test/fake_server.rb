@@ -57,14 +57,15 @@ end
 module Kontena::Etcd::Test
   class FakeServer < ServerBase
     class Node
-        attr_reader :key, :created_index, :modified_index, :value, :nodes
+        attr_reader :key, :created_index, :modified_index, :value, :nodes, :expire
 
-        def initialize(key, index, value: nil, nodes: nil)
+        def initialize(key, index, value: nil, nodes: nil, expire: nil)
           @key = key
           @created_index = index
           @modified_index = index
           @value = value
           @nodes = nodes
+          @expire = expire
         end
 
         def parent_path
@@ -75,9 +76,10 @@ module Kontena::Etcd::Test
           @nodes != nil
         end
 
-        def update(index, value)
+        def update(index, value, expire: nil)
           @modified_index = index
           @value = value
+          @expire = expire
         end
         def delete(index)
           @modified_index = index
@@ -159,10 +161,10 @@ module Kontena::Etcd::Test
     end
 
     # Write a node
-    def write(path, **attrs)
+    def write(path, ttl: nil, **attrs)
       @index += 1
 
-      @nodes[path] = node = Node.new(path, @index, **attrs)
+      @nodes[path] = node = Node.new(path, @index, expire: ttl ? @clock + ttl : nil, **attrs)
 
       # create parent dirs
       child = node
@@ -175,10 +177,10 @@ module Kontena::Etcd::Test
       node
     end
 
-    def update(node, value)
+    def update(node, value, ttl: nil)
       @index += 1
 
-      node.update(@index, value)
+      node.update(@index, value, expire: ttl ? @clock + ttl : nil)
     end
 
     # recursively unlink node and any child nodes
@@ -232,6 +234,7 @@ module Kontena::Etcd::Test
       @nodes = {}
       @logs = []
       @modified = false
+      @clock = 0.0
 
       mkdir('/')
       @start_index = @index
@@ -251,6 +254,18 @@ module Kontena::Etcd::Test
         end
       end
       @start_index = @index
+    end
+
+    # Advance clock and expire nodes
+    def tick!(offset)
+      @clock += offset
+
+      walk do |node|
+        next unless node.expire && @clock >= node.expire
+
+        remove(node)
+        log! :expire, node
+      end
     end
 
     # Return etcd index at start of test
@@ -295,6 +310,7 @@ module Kontena::Etcd::Test
       key, node = read(key)
 
       raise Error.new(400, 211, key), "Value provided on refresh" if refresh && value
+      raise Error.new(400, 212, key), "A TTL must be provided on refresh" if refresh && !ttl
 
       if node
         raise Error.new(412, 105, key), "Key already exists" if prevExist == false
@@ -310,14 +326,11 @@ module Kontena::Etcd::Test
         end
 
         prev_node = node.serialize
+        value = node.value if refresh
 
-        if refresh
-          # TODO: refresh TTL
-          # Do not log!
-        else
-          update node, value
-          log! action, node
-        end
+        update node, value, ttl: ttl
+
+        log! action, node unless refresh
       else
         raise Error.new(404, 100, key), "Key not found" if refresh || prevExist == true || prevIndex || prevValue
 
@@ -325,9 +338,9 @@ module Kontena::Etcd::Test
         prev_node = nil
 
         node = if dir
-          write key, nodes: {}
+          write key, nodes: {}, ttl: ttl
         else
-          write key, value: value
+          write key, value: value, ttl: ttl
         end
 
         log! action, node

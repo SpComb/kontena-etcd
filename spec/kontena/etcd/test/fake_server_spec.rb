@@ -170,4 +170,50 @@ describe Kontena::Etcd::Test::FakeServer do
       expect(etcd_server.logs).to eq [[:set, '/kontena/test/quux']]
     end
   end
+
+  describe '#tick' do
+    it "expires a node" do
+      etcd.set('/kontena/test/quux', value: 'quux', ttl: 30)
+
+      etcd_server.tick! 30
+
+      expect{etcd.get('/kontena/test/quux')}.to raise_error(Etcd::KeyNotFound)
+
+      expect(etcd_server.nodes).to eq({})
+      expect(etcd_server.logs).to eq [
+        [:set, '/kontena/test/quux'],
+        [:expire, '/kontena/test/quux'],
+      ]
+    end
+
+    it "does not expires a node with a longer TTL" do
+      etcd.set('/kontena/test/quux', value: 'quux', ttl: 30)
+
+      etcd_server.tick! 15
+
+      expect{etcd.get('/kontena/test/quux')}.to_not raise_error
+
+      expect(etcd_server.nodes).to eq(
+        '/kontena/test/quux' => 'quux',
+      )
+      expect(etcd_server.logs).to eq [
+        [:set, '/kontena/test/quux'],
+      ]
+    end
+
+    it "does not expires a node without any ttl" do
+      etcd.set('/kontena/test/quux', value: 'quux')
+
+      etcd_server.tick! 15
+
+      expect{etcd.get('/kontena/test/quux')}.to_not raise_error
+
+      expect(etcd_server.nodes).to eq(
+        '/kontena/test/quux' => 'quux',
+      )
+      expect(etcd_server.logs).to eq [
+        [:set, '/kontena/test/quux'],
+      ]
+    end
+  end
 end
