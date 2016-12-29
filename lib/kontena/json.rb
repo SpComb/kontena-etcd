@@ -87,18 +87,21 @@ module Kontena::JSON
     end
 
     # Initialize JSON instance variables from keyword arguments
-    def initialize_json(**attrs)
+    def initialize(**attrs)
       attrs.each do |sym, value|
         raise ArgumentError, "Extra JSON attr argument: #{sym.inspect}" unless self.class.json_attrs[sym]
       end
+
       self.class.json_attrs.each do |sym, json_attr|
         self.instance_variable_set("@#{sym}", attrs.fetch(sym, json_attr.default))
       end
     end
 
+    include Comparable
+
     # Compare equality of JSON attributes, per the <=> operator
     # @return [Integer] <0, 0, >0
-    def cmp_json(other)
+    def <=>(other)
       self.class.json_attrs.each do |sym, json_attr|
         self_value = self.instance_variable_get("@#{sym}")
         other_value = other.instance_variable_get("@#{sym}")

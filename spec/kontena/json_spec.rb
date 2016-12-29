@@ -11,15 +11,6 @@ describe Kontena::JSON::Model do
     json_attr :int, name: 'number', omitnil: true
     json_attr :bool, default: false, readonly: true
     json_attr :ipaddr, type: IPAddr
-
-    def initialize(**attrs)
-      initialize_json(**attrs)
-    end
-
-    def <=>(other)
-      self.cmp_json(other)
-    end
-    include Comparable
   end
 
   it 'initializes default attributes' do
@@ -110,15 +101,6 @@ describe Kontena::JSON::Model do
   context "for an empty model" do
     class TestJSONEmpty
       include Kontena::JSON::Model
-
-      def initialize(**attrs)
-        initialize_json(**attrs)
-      end
-
-      def <=>(other)
-        self.cmp_json(other)
-      end
-      include Comparable
     end
 
     it 'initializes no attributes' do
