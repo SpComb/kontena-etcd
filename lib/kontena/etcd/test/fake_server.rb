@@ -291,7 +291,7 @@ module Kontena::Etcd::Test
       }
     end
 
-    def set(key, prevExist: nil, dir: nil, value: nil, ttl: nil, refresh: nil)
+    def set(key, dir: nil, value: nil, ttl: nil, refresh: nil, prevExist: nil, prevIndex: nil, prevValue: nil)
       key, node = read(key)
 
       raise Error.new(400, 211, key), "Value provided on refresh" if refresh && value
@@ -300,7 +300,15 @@ module Kontena::Etcd::Test
         raise Error.new(412, 105, key), "Key already exists" if prevExist == false
         raise Error.new(403, 102, key), "Not a file" if dir
 
-        action = :set
+        if prevIndex || prevValue
+          raise Error.new(412, 101, key), "Compare index failed" if prevIndex && node.index != prevIndex
+          raise Error.new(412, 101, key), "Compare value failed" if prevValue && node.value != prevValue
+
+          action = :compareAndSwap
+        else
+          action = :set
+        end
+
         prev_node = node.serialize
 
         if refresh
@@ -311,7 +319,7 @@ module Kontena::Etcd::Test
           log! action, node
         end
       else
-        raise Error.new(404, 100, key), "Key not found" if prevExist == true || refresh
+        raise Error.new(404, 100, key), "Key not found" if refresh || prevExist == true || prevIndex || prevValue
 
         action = prevExist == false ? :create : :set
         prev_node = nil
@@ -421,6 +429,8 @@ module Kontena::Etcd::Test
         begin
           respond 201, @server.set(key,
             prevExist: param_bool('prevExist'),
+            prevIndex: param_int('prevIndex'),
+            prevValue: params['prevValue'],
             dir: param_bool('dir'),
             value: params['value'],
             ttl: param_int('ttl'),
