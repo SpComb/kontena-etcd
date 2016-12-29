@@ -89,7 +89,10 @@ module Kontena::Etcd::Test
 
       walk do |node|
         if !node.directory?
-          tree[node.key] = JSON.parse(node.value)
+          value = node.value
+          value = JSON.parse(value) if value =~ /{.*}/
+
+          tree[node.key] = value
         end
       end
 
