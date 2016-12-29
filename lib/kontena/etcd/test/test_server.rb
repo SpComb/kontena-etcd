@@ -40,15 +40,12 @@ module Kontena::Etcd::Test
 
     # Uses etcd GET ?wait to yield modifications after from index up to and including to index
     def get_logs(index, to)
-      # skip initial
-      index += 1
-
-      while index <= to
-        response = @client.watch(@root, recursive: true, waitIndex: index, timeout: 1)
+      while index < to
+        response = @client.watch(@root, recursive: true, waitIndex: index + 1, timeout: 1.0)
 
         yield response.action, response.node
 
-        index = response.node.modified_index + 1
+        index = response.node.modified_index
       end
     rescue Net::ReadTimeout => error
       fail "Unexpected end of watch stream at #{index} before #{to}"
