@@ -68,6 +68,44 @@ describe Kontena::Etcd::Test::FakeServer do
           '/kontena/test/quux',
         ]
       end
+
+      it 'returns an error when using prevIndex for a non-existant node' do
+        expect{etcd.set('/kontena/test/quux', value: 'quux', prevIndex: 1)}.to raise_error(Etcd::KeyNotFound)
+      end
+
+      it 'logs a compareAndSwap event when using prevValue with the correct value' do
+        response = etcd.set('/kontena/test/foo', value: 'foo2', prevValue: 'foo')
+
+        expect(response.action).to eq 'compareAndSwap'
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test/foo' => 'foo2',
+          '/kontena/test/bar' => 'bar',
+        )
+        expect(etcd_server.logs).to eq [
+          [:compareAndSwap, '/kontena/test/foo']
+        ]
+      end
+
+      it 'returns an error when using prevValue with the wrong value' do
+        expect{etcd.set('/kontena/test/foo', value: 'foo', prevValue: 'foo2')}.to raise_error(Etcd::TestFailed)
+      end
+
+      it 'logs a compareAndSwap event when using prevIndex with the correct index' do
+        response = etcd.set('/kontena/test/foo', value: 'foo2', prevIndex: 1)
+
+        expect(response.action).to eq 'compareAndSwap'
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test/foo' => 'foo2',
+          '/kontena/test/bar' => 'bar',
+        )
+        expect(etcd_server.logs).to eq [
+          [:compareAndSwap, '/kontena/test/foo']
+        ]
+      end
+
+      it 'returns an error when using prevIndex with the wrong index' do
+        expect{etcd.set('/kontena/test/foo', value: 'foo', prevIndex: 2)}.to raise_error(Etcd::TestFailed)
+      end
     end
 
     describe '#delete' do

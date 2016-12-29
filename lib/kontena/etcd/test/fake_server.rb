@@ -301,7 +301,7 @@ module Kontena::Etcd::Test
         raise Error.new(403, 102, key), "Not a file" if dir
 
         if prevIndex || prevValue
-          raise Error.new(412, 101, key), "Compare index failed" if prevIndex && node.index != prevIndex
+          raise Error.new(412, 101, key), "Compare index failed" if prevIndex && node.modified_index != prevIndex
           raise Error.new(412, 101, key), "Compare value failed" if prevValue && node.value != prevValue
 
           action = :compareAndSwap
