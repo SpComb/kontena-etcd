@@ -43,10 +43,19 @@ describe Kontena::Etcd::Model do
     end
   end
 
+  it "raises if including in the wrong order" do
+    expect{
+      Class.new do
+        include Kontena::Etcd::Model
+        include Kontena::JSON::Model
+      end
+    }.to raise_error(TypeError)
+  end
+
   context 'a simple model' do
     class TestEtcd
-      include Kontena::Etcd::Model
       include Kontena::JSON::Model
+      include Kontena::Etcd::Model
 
       etcd_path '/kontena/test/:name'
       json_attr :field, type: String
@@ -465,8 +474,8 @@ describe Kontena::Etcd::Model do
 
   context 'for a complex model' do
     class TestEtcdChild
-      include Kontena::Etcd::Model
       include Kontena::JSON::Model
+      include Kontena::Etcd::Model
 
       etcd_path '/kontena/test/:parent/children/:name'
       json_attr :field, type: String

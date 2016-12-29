@@ -388,6 +388,8 @@ module Kontena::Etcd::Model
   end
 
   def self.included(base)
+    raise TypeError, "Must include Kontena::JSON::Model before including Kontena::Etcd::Model" unless base.ancestors.include? Kontena::JSON::Model
+
     base.extend(ClassMethods)
 
     # define per-model Errors
@@ -398,19 +400,21 @@ module Kontena::Etcd::Model
 
   attr_accessor :etcd_node
 
-  # Initialize from etcd key values and JSON attrs
+  # Initialize from etcd key :sym placeholder values, and value attributes
   #
   # @param keys [Array<String>] EtcdModel key values
   # @param attrs [Hash<Symbol, EtcdModel>] JSONModel attribute values
   def initialize(*keys, **attrs)
     @etcd_node = nil
+
+    super(**attrs)
+
     self.class.etcd_schema.each_key_value(*keys) do |sym, value|
       self.instance_variable_set("@#{sym}", value)
     end
-    initialize_json(**attrs)
   end
 
-  # Compare for equality based on etcd key and JSON attr values
+  # Compare for equality based on etcd key and value mixin
   #
   # @param other [EtcdModel]
   # @return [Boolean]
@@ -418,7 +422,7 @@ module Kontena::Etcd::Model
     if self.etcd_key != other.etcd_key
       return self.etcd_key <=> other.etcd_key
     else
-      return self.cmp_json(other)
+      return super
     end
   end
 
