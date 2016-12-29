@@ -279,17 +279,16 @@ module Kontena::Etcd::Test
       @index
     end
 
-    def get(key, recursive: nil)
+    def get(key, recursive: nil, wait: false, waitIndex: nil)
       key, node = read(key)
 
-      if node
-        return {
-          'action' => 'get',
-          'node' => node.serialize(recursive: recursive),
-        }
-      else
-        raise Error.new(404, 100, key), "Key not found"
-      end
+      raise Error.new(404, 100, key), "Key not found" unless node
+      raise Error.new(400, 401, key), "No support for watch history" if wait
+
+      return {
+        'action' => 'get',
+        'node' => node.serialize(recursive: recursive),
+      }
     end
 
     def set(key, prevExist: nil, dir: nil, value: nil, ttl: nil, refresh: nil)
@@ -410,6 +409,8 @@ module Kontena::Etcd::Test
         begin
           respond 200, @server.get(key,
             recursive: param_bool('recursive'),
+            wait: param_bool('wait'),
+            waitIndex: param_int('waitIndex'),
           )
         rescue Error => error
           respond error.status, error
