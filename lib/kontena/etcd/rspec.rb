@@ -24,6 +24,9 @@ RSpec.configure do |config|
     Kontena::Etcd::Model.etcd = instance_double(Kontena::Etcd::Client)
   end
 
+  # Do not run examples that are broken against the FakeServer
+  config.filter_run_excluding :fake_etcd => false unless ENV['ETCD_ENDPOINT']
+
   # provide etcd and etcd_server for examples
   config.include_context 'etcd', :etcd => true
 
