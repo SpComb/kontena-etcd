@@ -26,6 +26,7 @@ RSpec.configure do |config|
 
   # Do not run examples that are broken against the FakeServer
   config.filter_run_excluding :fake_etcd => false unless ENV['ETCD_ENDPOINT']
+  config.filter_run_excluding :test_etcd => false if ENV['ETCD_ENDPOINT']
 
   # provide etcd and etcd_server for examples
   config.include_context 'etcd', :etcd => true

@@ -101,13 +101,13 @@ describe Kontena::Etcd::Writer do
     end
 
     describe '#refresh' do
-      it "updates the node" do
+      # using refresh breaks watch against test etcd (timeout)
+      it "updates the node", :test_etcd => false do
         subject.refresh
 
-        # XXX: can't use logs with refresh
-        #expect(etcd_server.logs).to eq [
-        #  [:set, '/kontena/test1'],
-        #]
+        expect(etcd_server.logs).to eq [
+          [:set, '/kontena/test1'],
+        ]
         expect(etcd_server.nodes).to eq(
           '/kontena/test1' => { 'test' => 1 },
         )
