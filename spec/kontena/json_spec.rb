@@ -119,4 +119,40 @@ describe Kontena::JSON::Model do
       expect(TestJSONEmpty.from_json('{}')).to eq TestJSONEmpty.new()
     end
   end
+
+  context "for a nested model" do
+    let :child_model do
+      Class.new do
+        include Kontena::JSON::Model
+
+        json_attr :field
+      end
+    end
+
+    let :parent_model do
+      cm = child_model
+
+      Class.new do
+        include Kontena::JSON::Model
+
+        json_attr :child, model: cm
+      end
+    end
+
+    it "Decodes from JSON" do
+      expect(parent_model.json_attrs[:child].model).to be child_model
+
+      subject = parent_model.from_json('{"child": {"field": "value"}}')
+
+      expect(subject).to be_a parent_model
+      expect(subject.child).to be_a child_model
+      expect(subject.child.field).to eq "value"
+    end
+
+    it "Encodes to JSON" do
+      subject = parent_model.new(child: child_model.new(field: "value"))
+
+      expect(subject.to_json).to eq '{"child":{"field":"value"}}'
+    end
+  end
 end

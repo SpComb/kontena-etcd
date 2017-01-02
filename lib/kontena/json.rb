@@ -4,18 +4,20 @@ require 'json'
 module Kontena::JSON
   # A single JSON-encodable/decodable attribute with an object value
   class Attribute
-    attr_reader :name, :default
+    attr_reader :name, :default, :model
 
     # Initialize from class declaration
     #
     # @param sym [Symbol] instance variable name
     # @param name [String] override JSON object attribute
     # @param type [Class] convert from basic JSON value to object value using type.new(...)
+    # @param model [Class<Kontena::JSON::Model>] load nested model
     # @param omitnil [Boolean] omit from JSON if nil
     # @param default [Object] default value. Used for both load() and initialize()
-    def initialize(sym, name: nil, type: nil, omitnil: false, default: nil)
+    def initialize(sym, name: nil, type: nil, model: nil, omitnil: false, default: nil)
       @name = name || sym.to_s
       @type = type
+      @model = model
       @omitnil = omitnil
       @default = default
     end
@@ -37,7 +39,11 @@ module Kontena::JSON
     def load(object)
       value = object.fetch(@name, @default)
 
-      value = @type.new(value) if @type && value
+      if @type
+        value = @type.new(value) if value
+      elsif @model
+        value = @model.load_json value
+      end
 
       value
     end
@@ -54,11 +60,24 @@ module Kontena::JSON
 
       # Return decoded JSON object
       #
-      # @param value [String] JSON-encoded object
+      # @param object [Hash] JSON-decoded object
+      # @param **opts Additional non-JSON initializer options
       # @raise JSON::JSONError
-      # @return [JSONModel] new value with JSON attrs set
-      def from_json(value)
-        obj = new
+      # @return [Class<Kontena::JSON::Model>] new value with JSON attrs set
+      def load_json(object, **opts)
+        obj = new(**opts)
+        obj.load_json!(object)
+        obj
+      end
+
+      # Return decoded JSON object
+      #
+      # @param value [String] JSON-encoded object
+      # @param **opts Additional non-JSON initializer options
+      # @raise JSON::JSONError
+      # @return [Class<Kontena::JSON::Model>] new value with JSON attrs set
+      def from_json(value, **opts)
+        obj = new(**opts)
         obj.from_json!(value)
         obj
       end
@@ -134,17 +153,24 @@ module Kontena::JSON
 
     # Set attributes from encoded JSON object
     #
-    # @param value [String] JSON-encoded object
+    # @param object [Hash] Decoded JSON object
     # @raise JSON::JSONError
     # @return self
-    def from_json!(value)
-      object = JSON.parse(value)
-
+    def load_json!(object)
       self.class.json_attrs.each do |sym, json_attr|
         self.instance_variable_set("@#{sym}", json_attr.load(object))
       end
 
       self
+    end
+
+    # Set attributes from encoded JSON object
+    #
+    # @param value [String] JSON-encoded object
+    # @raise JSON::JSONError
+    # @return self
+    def from_json!(value)
+      load_json! JSON.parse(value)
     end
   end
 end
