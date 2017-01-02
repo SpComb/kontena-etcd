@@ -1,6 +1,3 @@
-require 'etcd/keys_helpers'
-require 'etcd/node_helpers'
-
 module Kontena
   module Etcd
 
@@ -8,6 +5,9 @@ module Kontena
 end
 
 require 'kontena/etcd/logging'
+require 'kontena/etcd/error'
+require 'kontena/etcd/node'
+require 'kontena/etcd/keys'
 require 'kontena/etcd/client'
 require 'kontena/etcd/reader'
 require 'kontena/etcd/writer'

@@ -1,135 +1,67 @@
-require 'etcd'
+require 'excon'
 
 # Configurable etcd client, with logging
-class Kontena::Etcd::Client < Etcd::Client
+class Kontena::Etcd::Client
   include Kontena::Etcd::Logging
 
-  ENDPOINT = 'http://localhost:2379'
-  PORT = 2379
+  DEFAULT_URI = URI('http://127.0.0.1:2379')
 
   attr_accessor :uri
 
-  def initialize(env = ENV)
-    # we only support a single endpoint, which is a URL
-    endpoint = env.fetch('ETCD_ENDPOINT', ENDPOINT).split(',')[0]
-    @uri = URI(endpoint)
+  def self.from_env(env = ENV)
+    if (endpoint = env['ETCD_ENDPOINT']) && !endpoint.empty?
+      # we only support a single endpoint, which is a URL
+      uri = URI(endpoint.split(',')[0])
 
-    super(
-      host: @uri.host,
-      port: @uri.port.to_i || PORT,
-      use_ssl: @uri.scheme == 'https',
+      return new(uri)
+    else
+      return new()
+    end
+  end
+
+  # @param uri [URI]
+  def initialize(uri = DEFAULT_URI)
+    @uri = uri
+    @connection = Excon::Connection.new(
+      scheme: uri.scheme,
+      host: uri.host,
+      hostname: uri.hostname,
+      port: uri.port.to_i,
     )
   end
 
-  def uri
-    @uri
+  def scheme
+    @uri.scheme
+  end
+  def host
+    @uri.host
+  end
+  def port
+    @uri.port
+  end
+
+  def http_request(method, path, query: nil, form: nil, expects: [200, 201])
+    headers = {}
+    body = nil
+
+    if form
+      headers["Content-Type"] = "application/x-www-form-urlencoded"
+      body = URI.encode_www_form(form)
+    end
+
+    return @connection.request(method: method, path: path, query: query,
+      headers: headers,
+      body: body,
+      expects: expects,
+    )
   end
 
   # Query and parse the etcd daemon version
+  #
+  # @return [Hash{String => String}]
   def version
-    @version ||= JSON.parse(api_execute('/version', :get).body)
+    @version ||= JSON.parse(self.http_request(:get, '/version').body)
   end
 
-  # Return current etcd index
-  def get_index(path: '/')
-    get(path).etcd_index
-  end
-
-  # Monkey-patch to fix missing Content-Type for body
-  def build_http_request(klass, path, params = nil, body = nil)
-    req = super
-    if body
-      req['Content-Type'] = 'application/x-www-form-urlencoded'
-    end
-    return req
-  end
-
-  # Format Etcd::Error for logging
-  #
-  # @param op [Symbol] request operation
-  # @param key [String] request key
-  # @param opts [Hash] request options
-  # @param error [Etcd::Error]
-  # @return [String]
-  def log_error(op, key, opts, error)
-    "#{op} #{key} #{opts}: error #{error.class} #{error.cause}@#{error.index}: #{error.message}"
-  end
-
-  # Format Etcd::Response for logging
-  #
-  # @param op [Symbol] request operation
-  # @param key [String] request key
-  # @param opts [Hash] request options
-  # @param response [Etcd::Response]
-  # @return [String]
-  def log_response(op, key, opts, response)
-    path = response.node.key
-    path += '/' if response.node.directory?
-
-    if response.node.directory?
-      names = response.node.children.map{ |node|
-        name = File.basename(node.key)
-        name += '/' if node.directory?
-        name
-      }
-      "#{op} #{key} #{opts}: #{response.action} #{path}@#{response.node.modified_index}: #{names.join ' '}"
-    else
-      "#{op} #{key} #{opts}: #{response.action} #{path}@#{response.node.modified_index}: #{response.node.value}"
-    end
-  end
-
-  # Logging wrapper
-  def get(key, **opts)
-    response = super
-  rescue Etcd::Error => error
-    logger.debug { log_error(:get, key, opts, error) }
-    raise
-  else
-    logger.debug { log_response(:get, key, opts, response) }
-    return response
-  end
-
-  # Logging wrapper
-  def set(key, **opts)
-    response = super
-  rescue Etcd::Error => error
-    logger.debug { log_error(:set, key, opts, error) }
-    raise
-  else
-    logger.debug { log_response(:set, key, opts, response) }
-    return response
-  end
-
-  # Logging wrapper
-  def delete(key, **opts)
-    response = super
-  rescue Etcd::Error => error
-    logger.debug { log_error(:delete, key, opts, error) }
-    raise
-  else
-    logger.debug { log_response(:delete, key, opts, response) }
-    return response
-  end
-
-  # Logging wrapper
-  def create_in_order(key, **opts)
-    response = super
-  rescue Etcd::Error => error
-    logger.debug { log_error(:create_in_order, key, opts, error) }
-    raise
-  else
-    logger.debug { log_response(:create_in_order, key, opts, response) }
-    return response
-  end
-
-  # Logging wrapper
-  def watch(key, **opts)
-    response = super
-  rescue Etcd::Error => error
-    logger.debug { log_error(:watch, key, opts, error) }
-    raise
-  else
-    logger.debug { log_response(:watch, key, opts, response) }
-    return response
-  end
+  include Kontena::Etcd::Keys
 end

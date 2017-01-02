@@ -2,7 +2,7 @@ PATH
   remote: .
   specs:
     kontena-etcd (0.1.0)
-      etcd (~> 0.3.0)
+      excon (~> 0.54.0)
 
 GEM
   remote: https://rubygems.org/
@@ -12,10 +12,8 @@ GEM
     crack (0.4.3)
       safe_yaml (~> 1.0.0)
     diff-lcs (1.2.5)
-    etcd (0.3.0)
-      mixlib-log
+    excon (0.54.0)
     hashdiff (0.3.1)
-    mixlib-log (1.7.1)
     public_suffix (2.0.4)
     rack (1.6.5)
     rack-protection (1.5.3)
