@@ -18,8 +18,8 @@ module Kontena::Etcd::Logging
       @log_level = level
     end
 
-    def logger(progname, level: nil)
-      logger = Logger.new(STDERR)
+    def logger(progname, output: $stderr, level: nil)
+      logger = Logger.new(output)
       logger.level = level || @log_level || Kontena::Etcd::Logging.log_level
       logger.progname = progname
 
