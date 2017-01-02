@@ -155,4 +155,86 @@ describe Kontena::JSON::Model do
       expect(subject.to_json).to eq '{"child":{"field":"value"}}'
     end
   end
+
+  context "for an array model" do
+    let :child_model do
+      Class.new do
+        include Kontena::JSON::Model
+
+        json_attr :field
+      end
+    end
+
+    let :array_model do
+      cm = child_model
+
+      Class.new do
+        include Kontena::JSON::Model
+
+        json_attr :children, array_model: cm
+      end
+    end
+
+    it "Decodes from JSON" do
+      subject = array_model.from_json('{"children": [{"field": "value"}]}')
+
+      expect(subject).to be_a array_model
+      expect(subject.children.first).to be_a child_model
+      expect(subject.children.first.field).to eq "value"
+    end
+
+    it "Encodes to JSON" do
+      subject = array_model.new(children: [child_model.new(field: "value")])
+
+      expect(subject.to_json).to eq '{"children":[{"field":"value"}]}'
+    end
+  end
+
+  context "for a recursive model" do
+    let :model do
+      Class.new do |cls|
+        include Kontena::JSON::Model
+
+        json_attr :parent, model: cls
+      end
+    end
+
+    it "load raises a nested error" do
+      expect{model.from_json('{"parent": {"parent": "asdf"}}')}.to raise_error(NoMethodError, /Loading #<Class:0x\w+>@parent: Loading #<Class:0x\w+>@parent: Loading #<Class:0x\w+>@parent: undefined method `fetch' for "asdf":String/)
+    end
+  end
+
+  context "for an inherited model" do
+    let :child_model do
+      Class.new do
+        include Kontena::JSON::Model
+
+        json_attr :child
+      end
+    end
+
+    let :parent_model do
+      Class.new(child_model) do
+        include Kontena::JSON::Model
+
+        json_attr :parent
+      end
+    end
+
+    it "Decodes from JSON" do
+      expect(parent_model.json_attrs[:child]).to be_a Kontena::JSON::Attribute
+
+      subject = parent_model.from_json('{"child": "value1", "parent": "value2"}')
+
+      expect(subject).to be_a parent_model
+      expect(subject.child).to eq "value1"
+      expect(subject.parent).to eq "value2"
+    end
+
+    it "Encodes to JSON" do
+      subject = parent_model.new(child: "value1", parent: "value2")
+
+      expect(subject.to_json).to eq '{"child":"value1","parent":"value2"}'
+    end
+  end
 end

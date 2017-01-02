@@ -14,10 +14,13 @@ module Kontena::JSON
     # @param model [Class<Kontena::JSON::Model>] load nested model
     # @param omitnil [Boolean] omit from JSON if nil
     # @param default [Object] default value. Used for both load() and initialize()
-    def initialize(sym, name: nil, type: nil, model: nil, omitnil: false, default: nil)
+    def initialize(cls, sym, name: nil, type: nil, model: nil, array_model: nil, omitnil: false, default: nil)
+      @class = cls
+      @sym = sym
       @name = name || sym.to_s
       @type = type
       @model = model
+      @array_model = array_model
       @omitnil = omitnil
       @default = default
     end
@@ -39,13 +42,19 @@ module Kontena::JSON
     def load(object)
       value = object.fetch(@name, @default)
 
-      if @type
-        value = @type.new(value) if value
+      if value.nil?
+        # TODO: required?
+      elsif @type
+        value = @type.new(value)
       elsif @model
         value = @model.load_json value
+      elsif @array_model
+        value = value.map{|array_value| @array_model.load_json array_value }
       end
 
       value
+    rescue => error
+      raise error.class, "Loading #{@class}@#{@sym}: #{error}"
     end
   end
 
@@ -56,6 +65,12 @@ module Kontena::JSON
       # @return [Hash<Symbol, JSONAttr>]
       def json_attrs
         @json_attrs ||= {}
+      end
+
+      # Inherit json attrs to subclass
+      def inherited(subclass)
+        super
+        subclass.json_attrs.merge! @json_attrs
       end
 
       # Return decoded JSON object
@@ -91,7 +106,7 @@ module Kontena::JSON
       # @param opts [Hash] JSONAttr options
       def json_attr(sym, readonly: false, **options)
         @json_attrs ||= {}
-        @json_attrs[sym] = Attribute.new(sym, **options)
+        @json_attrs[sym] = Attribute.new(self, sym, **options)
 
         if readonly
           attr_reader sym
