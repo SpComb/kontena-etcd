@@ -483,14 +483,14 @@ module Kontena::Etcd::Model
   #
   # @raise Etcd::NodeExist
   def create!
-    @etcd_node = etcd.set(etcd_key, value: to_json, prevExist: false).node
+    @etcd_node = etcd.set(etcd_key, self.to_json, prevExist: false).node
   end
 
   # Update this object in etcd, raising if the object does not exist.
   #
   # @raise ...
   def update!
-    @etcd_node = etcd.set(etcd_key, value: to_json, prevExist: true).node
+    @etcd_node = etcd.set(etcd_key, self.to_json, prevExist: true).node
   end
 
   # Delete this object in etcd, raising if the object does not exist.

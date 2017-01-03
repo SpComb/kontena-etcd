@@ -78,7 +78,7 @@ module Kontena::Etcd::Test
         if value == :directory
           response = @client.set(key, dir: true)
         else
-          response = @client.set(key, value: value)
+          response = @client.set(key, value)
         end
 
         # record initial load index for modfied?

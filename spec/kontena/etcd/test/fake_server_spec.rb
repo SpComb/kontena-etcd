@@ -54,13 +54,13 @@ describe Kontena::Etcd::Test::FakeServer do
 
     describe '#set' do
       it 'creates a new node' do
-        etcd.set('/kontena/test/quux', value: 'quux')
+        etcd.set('/kontena/test/quux', 'quux')
 
         expect(etcd.get('/kontena/test/quux').value).to eq 'quux'
       end
 
       it 'adds a new node to the parent directory' do
-        etcd.set('/kontena/test/quux', value: 'quux')
+        etcd.set('/kontena/test/quux', 'quux')
 
         expect(etcd.get('/kontena/test/').children.map{|node| node.key }.sort).to eq [
           '/kontena/test/bar',
@@ -70,11 +70,11 @@ describe Kontena::Etcd::Test::FakeServer do
       end
 
       it 'returns an error when using prevIndex for a non-existant node' do
-        expect{etcd.set('/kontena/test/quux', value: 'quux', prevIndex: 1)}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
+        expect{etcd.set('/kontena/test/quux', 'quux', prevIndex: 1)}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
       end
 
       it 'logs a compareAndSwap event when using prevValue with the correct value' do
-        response = etcd.set('/kontena/test/foo', value: 'foo2', prevValue: 'foo')
+        response = etcd.set('/kontena/test/foo', 'foo2', prevValue: 'foo')
 
         expect(response.action).to eq 'compareAndSwap'
         expect(etcd_server.nodes).to eq(
@@ -87,11 +87,11 @@ describe Kontena::Etcd::Test::FakeServer do
       end
 
       it 'returns an error when using prevValue with the wrong value' do
-        expect{etcd.set('/kontena/test/foo', value: 'foo', prevValue: 'foo2')}.to raise_error(Kontena::Etcd::Error::TestFailed)
+        expect{etcd.set('/kontena/test/foo', 'foo', prevValue: 'foo2')}.to raise_error(Kontena::Etcd::Error::TestFailed)
       end
 
       it 'logs a compareAndSwap event when using prevIndex with the correct index' do
-        response = etcd.set('/kontena/test/foo', value: 'foo2', prevIndex: 1)
+        response = etcd.set('/kontena/test/foo', 'foo2', prevIndex: 1)
 
         expect(response.action).to eq 'compareAndSwap'
         expect(etcd_server.nodes).to eq(
@@ -104,7 +104,7 @@ describe Kontena::Etcd::Test::FakeServer do
       end
 
       it 'returns an error when using prevIndex with the wrong index' do
-        expect{etcd.set('/kontena/test/foo', value: 'foo', prevIndex: 2)}.to raise_error(Kontena::Etcd::Error::TestFailed)
+        expect{etcd.set('/kontena/test/foo', 'foo', prevIndex: 2)}.to raise_error(Kontena::Etcd::Error::TestFailed)
       end
     end
 
@@ -143,7 +143,7 @@ describe Kontena::Etcd::Test::FakeServer do
 
   describe '#set' do
     it 'logs a create event when using prevExist=false' do
-      etcd.set('/kontena/test/quux', value: '{"quux": false}', prevExist: false)
+      etcd.set('/kontena/test/quux', '{"quux": false}', prevExist: false)
 
       expect(etcd_server.nodes).to eq(
         '/kontena/test/quux' => { 'quux' => false },
@@ -152,7 +152,7 @@ describe Kontena::Etcd::Test::FakeServer do
     end
 
     it 'logs a set event when not using prevExist' do
-      etcd.set('/kontena/test/quux', value: '{"quux": true}')
+      etcd.set('/kontena/test/quux', '{"quux": true}')
 
       expect(etcd_server.nodes).to eq(
         '/kontena/test/quux' => { 'quux' => true },
@@ -161,7 +161,7 @@ describe Kontena::Etcd::Test::FakeServer do
     end
 
     it 'refreshes a node' do
-      etcd.set('/kontena/test/quux', value: '{"quux": true}', ttl: 30)
+      etcd.set('/kontena/test/quux', '{"quux": true}', ttl: 30)
       etcd.refresh('/kontena/test/quux', 60)
 
       expect(etcd_server.nodes).to eq(
@@ -173,7 +173,7 @@ describe Kontena::Etcd::Test::FakeServer do
 
   describe '#tick' do
     it "expires a node" do
-      etcd.set('/kontena/test/quux', value: 'quux', ttl: 30)
+      etcd.set('/kontena/test/quux', 'quux', ttl: 30)
 
       etcd_server.tick! 30
 
@@ -187,7 +187,7 @@ describe Kontena::Etcd::Test::FakeServer do
     end
 
     it "does not expires a node with a longer TTL" do
-      etcd.set('/kontena/test/quux', value: 'quux', ttl: 30)
+      etcd.set('/kontena/test/quux', 'quux', ttl: 30)
 
       etcd_server.tick! 15
 
@@ -202,7 +202,7 @@ describe Kontena::Etcd::Test::FakeServer do
     end
 
     it "does not expires a node without any ttl" do
-      etcd.set('/kontena/test/quux', value: 'quux')
+      etcd.set('/kontena/test/quux', 'quux')
 
       etcd_server.tick! 15
 

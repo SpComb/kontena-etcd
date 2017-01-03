@@ -127,7 +127,7 @@ describe Kontena::Etcd::Writer do
       end
 
       it "raises if the node has been modified", :fake_etcd => true do
-        etcd.set '/kontena/test1', value: 'lollerskates'
+        etcd.set '/kontena/test1', 'lollerskates'
 
         expect{subject.refresh}.to raise_error(Kontena::Etcd::Error::TestFailed)
       end

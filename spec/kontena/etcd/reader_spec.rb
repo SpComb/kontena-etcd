@@ -23,7 +23,7 @@ describe Kontena::Etcd::Reader do
       it "adds a new node", :etcd => true do
         subject.sync
 
-        etcd.set '/kontena/test/test3', value: { 'field' => "value 3" }.to_json
+        etcd.set '/kontena/test/test3', { 'field' => "value 3" }.to_json
 
         subject.watch
 
@@ -37,7 +37,7 @@ describe Kontena::Etcd::Reader do
       it "updates a node" do
         subject.sync
 
-        etcd.set '/kontena/test/test1', value: { 'field' => "value 1-B" }.to_json
+        etcd.set '/kontena/test/test1', { 'field' => "value 1-B" }.to_json
 
         subject.watch
 
@@ -64,7 +64,7 @@ describe Kontena::Etcd::Reader do
       it "expires a node", :test_etcd => false do
         subject.sync
 
-        etcd.set '/kontena/test/test1', value: { 'field' => "value 1-B" }.to_json, ttl: 30
+        etcd.set '/kontena/test/test1', { 'field' => "value 1-B" }.to_json, ttl: 30
 
         etcd_server.tick! 30
 

@@ -28,7 +28,7 @@ class Kontena::Etcd::Writer
       if !(node = @nodes[key]) || value != node.value
         logger.info "set #{key}: #{value}"
 
-        response = @client.set(key, value: value, ttl: @ttl)
+        response = @client.set(key, value, ttl: @ttl)
 
         @nodes[key] = response.node
       end

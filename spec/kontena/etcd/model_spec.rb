@@ -198,7 +198,7 @@ describe Kontena::Etcd::Model do
 
     describe '#create' do
       it 'returns new object stored to etcd', :etcd => true do
-        expect(etcd).to receive(:set).with('/kontena/test/test1', prevExist: false, value: '{"field":"value"}').and_call_original
+        expect(etcd).to receive(:set).with('/kontena/test/test1', '{"field":"value"}', prevExist: false).and_call_original
 
         subject = TestEtcd.create('test1', field: "value")
 
@@ -224,7 +224,7 @@ describe Kontena::Etcd::Model do
           '/kontena/test/test1' => { 'field' => "value 1" }
         )
 
-        expect(etcd).to receive(:set).with('/kontena/test/test1', prevExist: false, value: '{"field":"value 2"}').and_call_original
+        expect(etcd).to receive(:set).with('/kontena/test/test1', '{"field":"value 2"}', prevExist: false).and_call_original
 
         expect{TestEtcd.create('test1', field: "value 2")}.to raise_error(TestEtcd::Conflict)
 
@@ -234,7 +234,7 @@ describe Kontena::Etcd::Model do
 
     describe '#create_or_get' do
       it 'returns new object stored to etcd', :etcd => true do
-        expect(etcd).to receive(:set).with('/kontena/test/test1', prevExist: false, value: '{"field":"value"}').and_call_original
+        expect(etcd).to receive(:set).with('/kontena/test/test1', '{"field":"value"}', prevExist: false).and_call_original
 
         expect(TestEtcd.create_or_get('test1', field: "value")).to eq TestEtcd.new('test1', field: "value")
 
@@ -257,7 +257,7 @@ describe Kontena::Etcd::Model do
           '/kontena/test/test1' => { 'field' => "value 1" }
         )
 
-        expect(etcd).to receive(:set).with('/kontena/test/test1', prevExist: false, value: '{"field":"value 2"}').and_call_original
+        expect(etcd).to receive(:set).with('/kontena/test/test1', '{"field":"value 2"}', prevExist: false).and_call_original
         expect(etcd).to receive(:get).with('/kontena/test/test1').and_call_original
 
         expect(TestEtcd.create_or_get('test1', field: "value 2")).to eq TestEtcd.new('test1', field: "value 1")
@@ -271,7 +271,7 @@ describe Kontena::Etcd::Model do
         )
 
         # this is a create vs delete race
-        expect(etcd).to receive(:set).with('/kontena/test/test1', prevExist: false, value: '{"field":"value"}').and_call_original
+        expect(etcd).to receive(:set).with('/kontena/test/test1', '{"field":"value"}', prevExist: false).and_call_original
         expect(etcd).to receive(:get).with('/kontena/test/test1').and_raise(Kontena::Etcd::Error::KeyNotFound)
 
         expect{TestEtcd.create_or_get('test1', field: "value")}.to raise_error(TestEtcd::Conflict)
