@@ -257,4 +257,22 @@ describe Kontena::JSON::Model do
       expect{parent_model.new(child: "value1", parent: "value2")}.to raise_error(ArgumentError)
     end
   end
+
+  context "for an inherited empty model" do
+    let :parent_model do
+      Class.new do
+        include Kontena::JSON::Model
+      end
+    end
+
+    it "correctly merges the json_attrs" do
+      subject_model = Class.new(parent_model) do
+        include Kontena::JSON::Model
+
+        json_attr :child
+      end
+
+      expect(subject_model.json_attrs).to have_key(:child)
+    end
+  end
 end

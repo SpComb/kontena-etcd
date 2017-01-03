@@ -70,7 +70,7 @@ module Kontena::JSON
       # Inherit json attrs to subclass
       def inherited(subclass)
         super
-        subclass.json_attrs.merge! @json_attrs
+        subclass.json_attrs.merge! json_attrs
       end
 
       # Return decoded JSON object
