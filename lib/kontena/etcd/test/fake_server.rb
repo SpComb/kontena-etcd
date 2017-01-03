@@ -358,8 +358,6 @@ module Kontena::Etcd::Test
 
       if !node
         raise Error.new(404, 100, key), "Key not found"
-      #elsif dir && !node.directory?
-      #  raise Etcd::NotDir.new('cause' => key)
       elsif node.directory? && !dir && !recursive
         raise Error.new(403, 102, key), "Not a file"
       elsif node.directory? && dir && !node.nodes.empty? && !recursive
