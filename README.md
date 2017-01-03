@@ -97,6 +97,7 @@ Includes [RSpec](http://rspec.info/) support for writing tests against etcd, all
 
 Tests can be run using either an internal fake `etcd` API implementation, or a real `etcd` server.
 
+When running against a real `etcd` server, the `modified?` and `logs` helpers use the `X-Etcd-Index` and recursive watches to find any operations performed by the example.
 
 ```ruby
 require 'rspec'
@@ -132,4 +133,14 @@ describe MyModel do
   end
 end
 
+# Mocking node expiry only works against the fake etcd server
+it "Expires a node from etcd", :etcd => true, :etcd_fake => true do
+  etcd.set('/kontena/test', 'test-value', ttl: 30)
+
+  expect(etcd.get('/kontena/test')).to have_attributes(value: 'test-value')
+
+  etcd_server.tick! 30
+
+  expect{etcd.get('/kontena/test')}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
+end
 ```
