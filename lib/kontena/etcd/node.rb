@@ -12,6 +12,15 @@ class Kontena::Etcd::Node
   json_attr :dir
   json_attr :nodes, array_model: Kontena::Etcd::Node
 
+  # @raise [RuntimeError] this node is not a directory
+  # @return [Array<Kontena::Etcd::Node>] directory nodes
+  def nodes
+    raise "Node is not a directory" unless @dir
+
+    # etcd omits the nodes for an empty directory
+    @nodes || []
+  end
+
   alias_method :children, :nodes
   alias_method :directory?, :dir
 

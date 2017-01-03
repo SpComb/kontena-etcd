@@ -221,6 +221,56 @@ describe Kontena::Etcd::Keys do
     end
   end
 
+  describe '#get' do
+    it "Has empty nodes for an empty directory" do
+      WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test').to_return(
+        status: 200,
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-Etcd-Index' => '1',
+          'X-Raft-Index' => '2',
+          'X-Raft-Term' => '3',
+        },
+        body: {'action' => 'get', 'node' => { 'key' => "/test", 'dir' => true, "modifiedIndex": 3}}.to_json,
+      )
+
+      expect(subject.get('/test').node).to have_attributes(key: '/test', nodes: [])
+    end
+
+    it "Has nodes for an directory" do
+      WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test').to_return(
+        status: 200,
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-Etcd-Index' => '1',
+          'X-Raft-Index' => '2',
+          'X-Raft-Term' => '3',
+        },
+        body: {'action' => 'get', 'node' => { 'key' => "/test", 'dir' => true, "modifiedIndex": 3, 'nodes' => [
+          { 'key' => "/test/bar", 'value' => 'bar' },
+          { 'key' => "/test/foo", 'value' => 'foo' },
+        ]}}.to_json,
+      )
+
+      expect(subject.get('/test').node.nodes).to match_array [Kontena::Etcd::Node, Kontena::Etcd::Node]
+    end
+
+    it "Raises if nodes for a non-directory" do
+      WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test').to_return(
+        status: 200,
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-Etcd-Index' => '1',
+          'X-Raft-Index' => '2',
+          'X-Raft-Term' => '3',
+        },
+        body: {'action' => 'get', 'node' => { 'key' => "/test", "modifiedIndex": 3, 'value' => 'test'}}.to_json,
+      )
+
+      expect{subject.get('/test').node.nodes}.to raise_error(RuntimeError)
+    end
+  end
+
   describe '#each' do
     it 'yields nodes' do
       WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test/').to_return(
