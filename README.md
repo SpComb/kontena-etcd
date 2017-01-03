@@ -1,5 +1,5 @@
 # `Kontena::Etcd`
-A Ruby client for [`etcd`](https://github.com/coreos/etcd).
+A Ruby client for [`etcd`](https://github.com/coreos/etcd) with JSON Model mapper, recursive Reader/Writer, rspec testing support.
 
 ## Features
 Inspired by and mostly compatible with https://github.com/ranjib/etcd-ruby, extended with additional features:
@@ -65,9 +65,10 @@ I, [2017-01-03T16:13:25.178353 #6058]  INFO -- Kontena::Etcd::Reader: expire /ko
 
 ### `Kontena::Etcd::Writer`
 
-Maintain a set of nodes in etcd, automatically adding and removing nodes as the set changes.
+Maintain a set of nodes in etcd, automatically adding and removing nodes when updated.
 
-Supports TTL for automatic expiry, with periodic refreshing to maintain the nodes, and verify any conflicts from writes.
+Supports TTL for automatic expiry on writer crashes, with periodic refreshing to maintain the nodes.
+The refresh operation also serves to detect any write conflicts.
 
 ### `Kontena::Etcd::Model`
 
@@ -78,16 +79,57 @@ class MyModel
   include Kontena::JSON::Model
   include Kontena::Etcd::Model
 
-  etcd_path '/kontena/examples/foo/:foo'
+  etcd_path '/kontena/examples/:foo'
   json_attr :bar
 end
 
-...
+MyModel.create('foo1', bar: 'bar2')
+
+my_model = MyModel.get('foo1')
+
+MyModel.each do |my_model|
+  puts "#{my_model.foo}=#{my_mode.bar}"
+end
 ```
 
 ## Testing
-Includes [RSpec](http://rspec.info/) support for writing tests against etcd, using either an internal fake implementation, or a real etcd server.
+Includes [RSpec](http://rspec.info/) support for writing tests against etcd, allowing specs to expect on the result of any etcd modifications, and mock behavior such as TTL expiration.
+
+Tests can be run using either an internal fake `etcd` API implementation, or a real `etcd` server.
+
 
 ```ruby
-...
+require 'rspec'
+require 'kontena/etcd/rspec'
+
+describe MyModel do
+  it "Reads a node from etcd", :etcd => true do
+    etcd_server.load!(
+      '/kontena/examples/foo/foo1' => {'bar' => 'bar2'},
+    )
+
+    expect(MyModel.get('foo1').bar).to eq 'bar2'
+
+    expect(etcd_server).to_not be_modified
+  end
+
+  it "Writes itself to etcd", :etcd => true do
+    MyModel.create('foo1', bar: 'bar2')
+
+    expect(etcd_server).to be_modified
+    expect(etcd_server.logs) to eq [
+      [:set, '/kontena/examples/foo/foo1'],
+    ]
+    expect(etcd_server.list).to eq Set.new([
+      '/kontena/',
+      '/kontena/examples/',
+      '/kontena/examples/foo/',
+      '/kontena/examples/foo/foo1',
+    ])
+    expect(etcd_server.nodes).to eq(
+      '/kontena/examples/foo/foo1' => {'bar' => 'bar2'},
+    )
+  end
+end
+
 ```
