@@ -40,7 +40,7 @@ RSpec.configure do |config|
 
       WebMock.disable_net_connect!(allow: "#{uri.host}:#{uri.port}")
     else
-      WebMock.stub_request(:any, /localhost:2379/).to_rack(etcd_server.api)
+      WebMock.stub_request(:any, /127.0.0.1:2379/).to_rack(etcd_server.api)
     end
 
     # clear etcd database
