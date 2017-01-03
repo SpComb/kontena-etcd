@@ -25,7 +25,7 @@ module Kontena::Etcd::Test
       root = @client.get(@root, recursive: true)
 
       walk_node(root, &block)
-    rescue Etcd::KeyNotFound
+    rescue Kontena::Etcd::Error::KeyNotFound
       # empty
     end
 
@@ -34,7 +34,7 @@ module Kontena::Etcd::Test
     # @return [Integer]
     def get_index
       return @client.get(@root).etcd_index
-    rescue Etcd::KeyNotFound => error
+    rescue Kontena::Etcd::Error::KeyNotFound => error
       return nil
     end
 
@@ -63,7 +63,7 @@ module Kontena::Etcd::Test
       @etcd_reset = true
       @etcd_index = response.etcd_index
 
-    rescue Etcd::KeyNotFound => error
+    rescue Kontena::Etcd::Error::KeyNotFound => error
       @etcd_reset = true
       @etcd_index = error.index
     end
