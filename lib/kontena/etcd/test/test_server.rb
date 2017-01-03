@@ -5,7 +5,7 @@ module Kontena::Etcd::Test
 
     def initialize(root, env = ENV)
       super(root)
-      @client = Kontena::Etcd::Client.new(env)
+      @client = Kontena::Etcd::Client.from_env(env)
     end
 
     # Recursive walk over nodes

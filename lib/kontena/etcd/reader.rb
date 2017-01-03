@@ -10,7 +10,7 @@ class Kontena::Etcd::Reader
   def initialize(prefix, &loader)
     @prefix = prefix
     @loader = loader
-    @client = Kontena::Etcd::Client.new
+    @client = Kontena::Etcd::Client.from_env
 
     # call #sync to start
     @index = @nodes = nil

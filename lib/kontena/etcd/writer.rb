@@ -11,7 +11,7 @@ class Kontena::Etcd::Writer
 
   def initialize(ttl: nil)
     @nodes = { }
-    @client = Kontena::Etcd::Client.new
+    @client = Kontena::Etcd::Client.from_env
     @ttl = ttl
 
     logger.debug "connected to etcd=#{@client.uri} with version=#{@client.version}"

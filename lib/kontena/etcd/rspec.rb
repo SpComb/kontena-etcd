@@ -14,7 +14,7 @@ RSpec.shared_context 'etcd' do
 
   # etcd client for test
   let :etcd do
-    Kontena::Etcd::Client.new
+    Kontena::Etcd::Client.from_env
   end
 end
 
@@ -36,7 +36,7 @@ RSpec.configure do |config|
 
   config.before :each, etcd: true do
     if etcd_endpoint = ENV['ETCD_ENDPOINT']
-      uri = URI(etcd_endpoint)
+      uri = etcd.uri
 
       WebMock.disable_net_connect!(allow: "#{uri.host}:#{uri.port}")
     else
