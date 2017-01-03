@@ -48,8 +48,8 @@ class Kontena::Etcd::Writer
   #
   # Only applicable when using a TTL
   #
-  # @raise [Etcd::KeyNotFound] node has already expired before we refresh it
-  # @raise [Etcd::TestFailed] node has been modified
+  # @raise [Kontena::Etcd::Error::KeyNotFound] node has already expired before we refresh it
+  # @raise [Kontena::Etcd::Error::TestFailed] node has been modified
   def refresh
     raise ArgumentError, "Refresh without TTL" unless @ttl
 

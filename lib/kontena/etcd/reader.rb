@@ -35,7 +35,7 @@ class Kontena::Etcd::Reader
 
   # Watch for a change from etcd.
   #
-  # @raise [Etcd::EventIndexCleared] must restart from sync
+  # @raise [Kontena::Etcd::Error::EventIndexCleared] must restart from sync
   def watch
     response = @client.watch(@prefix, recursive: true, waitIndex: @index + 1)
     object = self.load(response.node)
@@ -49,6 +49,8 @@ class Kontena::Etcd::Reader
 
   # Sync and then continuously watch for changes, yielding.
   #
+  # Handles re-sync on EventIndexCleared.
+  #
   # @yield [reader]
   # @yieldparam reader [Kontena::Etcd::Reader]
   def run(&block)
@@ -61,7 +63,7 @@ class Kontena::Etcd::Reader
 
       yield self
     end
-  rescue Etcd::EventIndexCleared => error
+  rescue Kontena::Etcd::Error::EventIndexCleared => error
     retry
   end
 

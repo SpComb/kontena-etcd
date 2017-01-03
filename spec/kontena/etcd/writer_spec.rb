@@ -117,7 +117,7 @@ describe Kontena::Etcd::Writer do
       it "raises if the node has expired", :fake_etcd => true do
         etcd_server.tick! 30.0
 
-        expect{subject.refresh}.to raise_error(Etcd::KeyNotFound)
+        expect{subject.refresh}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
 
         expect(etcd_server.logs).to eq [
           [:set, '/kontena/test1'],
@@ -129,7 +129,7 @@ describe Kontena::Etcd::Writer do
       it "raises if the node has been modified", :fake_etcd => true do
         etcd.set '/kontena/test1', value: 'lollerskates'
 
-        expect{subject.refresh}.to raise_error(Etcd::TestFailed)
+        expect{subject.refresh}.to raise_error(Kontena::Etcd::Error::TestFailed)
       end
     end
 

@@ -272,7 +272,7 @@ describe Kontena::Etcd::Model do
 
         # this is a create vs delete race
         expect(etcd).to receive(:set).with('/kontena/test/test1', prevExist: false, value: '{"field":"value"}').and_call_original
-        expect(etcd).to receive(:get).with('/kontena/test/test1').and_raise(Etcd::KeyNotFound)
+        expect(etcd).to receive(:get).with('/kontena/test/test1').and_raise(Kontena::Etcd::Error::KeyNotFound)
 
         expect{TestEtcd.create_or_get('test1', field: "value")}.to raise_error(TestEtcd::Conflict)
 

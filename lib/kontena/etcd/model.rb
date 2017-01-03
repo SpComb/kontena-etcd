@@ -1,4 +1,3 @@
-require 'etcd'
 require 'kontena/json'
 
 # Map an object to an etcd path, with a JSON value
@@ -238,7 +237,7 @@ module Kontena::Etcd::Model
       raise ArgumentError, "mkdir for complete object key" unless prefix.end_with? '/'
 
       etcd.set(prefix, dir: true, prevExist: false)
-    rescue Etcd::NodeExist => errors
+    rescue Kontena::Etcd::Error::NodeExist => errors
       # XXX: the same error is returned if the path exists as a file
       return
     end
@@ -253,7 +252,7 @@ module Kontena::Etcd::Model
       object = new(*key, **opts)
       object.create!
       object
-    rescue Etcd::NodeExist => error
+    rescue Kontena::Etcd::Error::NodeExist => error
       raise const_get(:Conflict), "Create conflict with #{error.cause}@#{error.index}: #{error.message}"
     end
 
@@ -265,7 +264,7 @@ module Kontena::Etcd::Model
       object = new(*key)
       object.get!
       object
-    rescue Etcd::KeyNotFound
+    rescue Kontena::Etcd::Error::KeyNotFound
       nil
     end
 
@@ -286,7 +285,7 @@ module Kontena::Etcd::Model
         object.get!
         object
       end
-    rescue Etcd::KeyNotFound => error
+    rescue Kontena::Etcd::Error::KeyNotFound => error
       raise const_get(:Conflict), "Create-and-Delete conflict with #{error.cause}@#{error.index}: #{error.message}"
     end
 
@@ -307,7 +306,7 @@ module Kontena::Etcd::Model
           y << object
         end
       end
-    rescue Etcd::KeyNotFound
+    rescue Kontena::Etcd::Error::KeyNotFound
       # directory does not exist, it is empty
     end
 
@@ -351,7 +350,7 @@ module Kontena::Etcd::Model
       prefix = @etcd_schema.prefix(*key)
 
       etcd.delete(prefix, recursive: prefix.end_with?('/'))
-    rescue Etcd::KeyNotFound => error
+    rescue Kontena::Etcd::Error::KeyNotFound => error
       raise const_get(:NotFound), "Removing non-existant node #{error.cause}@#{error.index}: #{error.message}"
     end
 
@@ -364,9 +363,9 @@ module Kontena::Etcd::Model
       raise ArgumentError, "rmdir for complete object key" unless prefix.end_with? '/'
 
       etcd.delete(prefix, dir: true)
-    rescue Etcd::KeyNotFound => error
+    rescue Kontena::Etcd::Error::KeyNotFound => error
       raise const_get(:NotFound), "Removing non-existant directory #{error.cause}@#{error.index}: #{error.message}"
-    rescue Etcd::DirNotEmpty => error
+    rescue Kontena::Etcd::Error::DirNotEmpty => error
       raise const_get(:Conflict), "Removing non-empty directory #{error.cause}@#{error.index}: #{error.message}"
     end
 
