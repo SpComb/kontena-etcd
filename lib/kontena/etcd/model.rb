@@ -198,25 +198,36 @@ module Kontena::Etcd::Model
     def etcd
       Kontena::Etcd::Model.etcd
     end
-    def etcd_schema
-      @etcd_schema
-    end
 
     # Define the etcd key schema used for object identity. This is an absolute path-like
     # string, starting from the root, with :symbol placeholders for instance variables.
     # This is normalized into a flattened array of String and Symbol components.
+    #
+    # This is required for a Model class, and any operations on the class will raise a RuntimeError otherwise.
     #
     # @param path [Array<String, Symbol>]
     def etcd_path(path)
       @etcd_schema = Schema.new(path)
     end
 
+    # Return Schema defined by #etcd_path
+    #
+    # @see #etcd_path
+    # @raise [RuntimeError] if no etcd_path
+    # @return [Kontena::Etcd::Model::Schema]
+    def etcd_schema
+      raise "Missing etcd_path for #{self}" unless @etcd_schema
+
+      @etcd_schema
+    end
+
+
     # Return object from etcd node
     #
     # @param node [Etcd::Node]
     # @return [EtcdModel]
     def load(node)
-      key = @etcd_schema.parse(node.key)
+      key = etcd_schema.parse(node.key)
       object = new(*key)
       object.from_json!(node.value)
       object
@@ -232,7 +243,7 @@ module Kontena::Etcd::Model
     # @raise ArgumentError if any invalid keys are given
     # @param key [String] key values
     def mkdir(*key)
-      prefix = @etcd_schema.prefix(*key)
+      prefix = etcd_schema.prefix(*key)
 
       raise ArgumentError, "mkdir for complete object key" unless prefix.end_with? '/'
 
@@ -290,7 +301,7 @@ module Kontena::Etcd::Model
     end
 
     def _enumerate(y, key)
-      prefix = @etcd_schema.prefix(*key)
+      prefix = etcd_schema.prefix(*key)
       response = etcd.get(prefix)
 
       for node in response.children
@@ -347,7 +358,7 @@ module Kontena::Etcd::Model
     # @raise ArgumentError if any invalid keys are given
     # @param key [String] key values
     def delete(*key)
-      prefix = @etcd_schema.prefix(*key)
+      prefix = etcd_schema.prefix(*key)
 
       etcd.delete(prefix, recursive: prefix.end_with?('/'))
     rescue Kontena::Etcd::Error::KeyNotFound => error
@@ -358,7 +369,7 @@ module Kontena::Etcd::Model
     #
     # The directory must not have any nodes
     def rmdir(*key)
-      prefix = @etcd_schema.prefix(*key)
+      prefix = etcd_schema.prefix(*key)
 
       raise ArgumentError, "rmdir for complete object key" unless prefix.end_with? '/'
 
@@ -376,9 +387,9 @@ module Kontena::Etcd::Model
     # @yield [objects]
     # @yieldparam objects [Hash{String => Model}]
     def watch(*key, &block)
-      reader = Kontena::Etcd::Reader.new(@etcd_schema.prefix(*key)) do |node|
+      reader = Kontena::Etcd::Reader.new(etcd_schema.prefix(*key)) do |node|
         # XXX: skip objects that do not match the schema
-        object = new(*@etcd_schema.parse(node.key))
+        object = new(*etcd_schema.parse(node.key))
         object.load! node unless node.value.nil? # do not load when deleted
       end
 

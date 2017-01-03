@@ -626,4 +626,21 @@ describe Kontena::Etcd::Model do
       expect{TestEtcdChild.delete("")}.to raise_error ArgumentError
     end
   end
+
+  context "For a model missing an etcd schema" do
+    let :model do
+      Class.new do
+        include Kontena::JSON::Model
+        include Kontena::Etcd::Model
+      end
+    end
+
+    it "Raises an error on #initialize" do
+      expect{model.new}.to raise_error(RuntimeError, /Missing etcd_path for/)
+    end
+
+    it "Raises an error on #get" do
+      expect{model.get('test')}.to raise_error(RuntimeError, /Missing etcd_path for/)
+    end
+  end
 end
