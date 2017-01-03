@@ -12,9 +12,8 @@ class Kontena::Etcd::Node
   json_attr :dir
   json_attr :nodes, array_model: Kontena::Etcd::Node
 
-  def directory?
-    @dir
-  end
+  alias_method :children, :nodes
+  alias_method :directory?, :dir
 
   # Walk recursive leaf nodes
   #

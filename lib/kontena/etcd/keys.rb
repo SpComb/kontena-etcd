@@ -1,3 +1,4 @@
+require 'forwardable'
 require 'kontena/json'
 
 # /v2/keys API client
@@ -5,6 +6,7 @@ module Kontena::Etcd::Keys
   include Kontena::Etcd::Logging
 
   class Response
+    extend Forwardable
     include Kontena::JSON::Model
 
     json_attr :action
@@ -12,6 +14,9 @@ module Kontena::Etcd::Keys
     json_attr :prev_node, name: 'prevNode', model: Kontena::Etcd::Node
 
     attr_reader :etcd_index, :raft_index, :raft_term
+
+    def_delegators :@node, :key, :value, :modified_index, :created_index, :expiration, :ttl, :dir, :nodes
+    def_delegators :@node, :directory?, :children
 
     def self.from_http(headers, body)
       response = new(
@@ -88,7 +93,7 @@ module Kontena::Etcd::Keys
   # @param opts [Hash] PUT form params
   # @raise [Kontena::Etcd::Error]
   # @return [Kontena::Etcd::Keys::Response]
-  def set(key, value, **opts)
+  def set(key, value = nil, **opts)
     keys_request(:set, key, method: 'PUT', form: {value: value, **opts})
   end
 
