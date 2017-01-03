@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+require 'kontena/etcd'
+
+reader = Kontena::Etcd::Reader.new('/kontena')
+
+reader.run do |nodes|
+  puts nodes.map{|node| "#{node.key}=#{node.value}"}.join ' '
+end

@@ -19,6 +19,8 @@ class Kontena::Etcd::Reader
   end
 
   # Load initial state from etcd
+  #
+  # TODO: Kontena::Etcd::Error::KeyNotFound on prefix?
   def sync
     @nodes = { }
 
