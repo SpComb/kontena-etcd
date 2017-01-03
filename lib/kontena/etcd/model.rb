@@ -203,11 +203,17 @@ module Kontena::Etcd::Model
     # string, starting from the root, with :symbol placeholders for instance variables.
     # This is normalized into a flattened array of String and Symbol components.
     #
+    # Any symbols in the etcd_path are added as (readonly) instance attributes.
+    #
     # This is required for a Model class, and any operations on the class will raise a RuntimeError otherwise.
     #
     # @param path [Array<String, Symbol>]
     def etcd_path(path)
       @etcd_schema = Schema.new(path)
+
+      @etcd_schema.each_key do |sym|
+        self.send :attr_reader, sym
+      end
     end
 
     # Return Schema defined by #etcd_path

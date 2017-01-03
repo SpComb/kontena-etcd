@@ -59,8 +59,6 @@ describe Kontena::Etcd::Model do
 
       etcd_path '/kontena/test/:name'
       json_attr :field, type: String
-
-      attr_accessor :name
     end
 
     it 'initializes the etcd key instance variables' do
@@ -479,8 +477,6 @@ describe Kontena::Etcd::Model do
 
       etcd_path '/kontena/test/:parent/children/:name'
       json_attr :field, type: String
-
-      attr_accessor :parent, :name
     end
 
     it 'renders the path for the class' do
