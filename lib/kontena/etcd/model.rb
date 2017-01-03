@@ -270,7 +270,7 @@ module Kontena::Etcd::Model
       object.create!
       object
     rescue Kontena::Etcd::Error::NodeExist => error
-      raise const_get(:Conflict), "Create conflict with #{error.cause}@#{error.index}: #{error.message}"
+      raise const_get(:Conflict), "Create conflict with #{error.reason}@#{error.index}: #{error.message}"
     end
 
     # Return object from etcd, or nil if not exists
@@ -303,7 +303,7 @@ module Kontena::Etcd::Model
         object
       end
     rescue Kontena::Etcd::Error::KeyNotFound => error
-      raise const_get(:Conflict), "Create-and-Delete conflict with #{error.cause}@#{error.index}: #{error.message}"
+      raise const_get(:Conflict), "Create-and-Delete conflict with #{error.reason}@#{error.index}: #{error.message}"
     end
 
     def _enumerate(y, key)
@@ -368,7 +368,7 @@ module Kontena::Etcd::Model
 
       etcd.delete(prefix, recursive: prefix.end_with?('/'))
     rescue Kontena::Etcd::Error::KeyNotFound => error
-      raise const_get(:NotFound), "Removing non-existant node #{error.cause}@#{error.index}: #{error.message}"
+      raise const_get(:NotFound), "Removing non-existant node #{error.reason}@#{error.index}: #{error.message}"
     end
 
     # Delete an empty directory under the given (partial) key prefix.
@@ -381,9 +381,9 @@ module Kontena::Etcd::Model
 
       etcd.delete(prefix, dir: true)
     rescue Kontena::Etcd::Error::KeyNotFound => error
-      raise const_get(:NotFound), "Removing non-existant directory #{error.cause}@#{error.index}: #{error.message}"
+      raise const_get(:NotFound), "Removing non-existant directory #{error.reason}@#{error.index}: #{error.message}"
     rescue Kontena::Etcd::Error::DirNotEmpty => error
-      raise const_get(:Conflict), "Removing non-empty directory #{error.cause}@#{error.index}: #{error.message}"
+      raise const_get(:Conflict), "Removing non-empty directory #{error.reason}@#{error.index}: #{error.message}"
     end
 
     # Watch all objects under the given (partial) key prefix.

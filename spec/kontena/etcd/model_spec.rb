@@ -224,7 +224,7 @@ describe Kontena::Etcd::Model do
 
         expect(etcd).to receive(:set).with('/kontena/test/test1', '{"field":"value 2"}', prevExist: false).and_call_original
 
-        expect{TestEtcd.create('test1', field: "value 2")}.to raise_error(TestEtcd::Conflict)
+        expect{TestEtcd.create('test1', field: "value 2")}.to raise_error(TestEtcd::Conflict, /Create conflict with \/kontena\/test\/test1@/)
 
         expect(etcd_server).to_not be_modified
       end
@@ -270,9 +270,9 @@ describe Kontena::Etcd::Model do
 
         # this is a create vs delete race
         expect(etcd).to receive(:set).with('/kontena/test/test1', '{"field":"value"}', prevExist: false).and_call_original
-        expect(etcd).to receive(:get).with('/kontena/test/test1').and_raise(Kontena::Etcd::Error::KeyNotFound)
+        expect(etcd).to receive(:get).with('/kontena/test/test1').and_raise(Kontena::Etcd::Error::KeyNotFound.new(index: 1, reason: '/kontena/test/test1', message: "Key not found" ))
 
-        expect{TestEtcd.create_or_get('test1', field: "value")}.to raise_error(TestEtcd::Conflict)
+        expect{TestEtcd.create_or_get('test1', field: "value")}.to raise_error(TestEtcd::Conflict, /Create-and-Delete conflict with \/kontena\/test\/test1@\d+: Key not found/)
 
         expect(etcd_server).to_not be_modified
       end
@@ -402,7 +402,7 @@ describe Kontena::Etcd::Model do
 
         expect(etcd).to receive(:delete).with('/kontena/test/test1', recursive: false).and_call_original
 
-        expect{TestEtcd.delete('test1')}.to raise_error(TestEtcd::NotFound)
+        expect{TestEtcd.delete('test1')}.to raise_error(TestEtcd::NotFound, /Removing non-existant node \/kontena\/test\/test1@/)
       end
     end
 
@@ -432,7 +432,7 @@ describe Kontena::Etcd::Model do
 
         expect(etcd).to receive(:delete).with('/kontena/test/', dir: true).and_call_original
 
-        expect{TestEtcd.rmdir()}.to raise_error(TestEtcd::Conflict)
+        expect{TestEtcd.rmdir()}.to raise_error(TestEtcd::Conflict, /Removing non-empty directory \/kontena\/test@/)
 
         expect(etcd_server).to_not be_modified
       end
@@ -440,7 +440,7 @@ describe Kontena::Etcd::Model do
       it 'raises for a non-existant directory', :etcd => true do
         expect(etcd).to receive(:delete).with('/kontena/test/', dir: true).and_call_original
 
-        expect{TestEtcd.rmdir()}.to raise_error(TestEtcd::NotFound)
+        expect{TestEtcd.rmdir()}.to raise_error(TestEtcd::NotFound, /Removing non-existant directory \/kontena/) # XXX: suffix varies for FakeServers
       end
     end
 
