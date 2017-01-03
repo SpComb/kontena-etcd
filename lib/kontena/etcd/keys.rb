@@ -88,15 +88,22 @@ module Kontena::Etcd::Keys
     keys_request(:get, key, method: 'GET', query: opts)
   end
 
+  # Modify node with various options altering the behavior.
+  #
+  # XXX: is the positional value a good idea or just confusing?
+  #
   # @param key [String]
-  # @param value [String]
+  # @param value [String, nil] may also use the `value: ...` option
   # @param opts [Hash] PUT form params
   # @raise [Kontena::Etcd::Error]
   # @return [Kontena::Etcd::Keys::Response]
   def set(key, value = nil, **opts)
-    keys_request(:set, key, method: 'PUT', form: {value: value, **opts})
+    opts[:value] = value if value
+    keys_request(:set, key, method: 'PUT', form: opts)
   end
 
+  # Variant of set that leaves the value as-is, but updates the TTL without notifying watchers.
+  #
   # @param key [String]
   # @param ttl [Integer]
   # @param opts [Hash] PUT form params

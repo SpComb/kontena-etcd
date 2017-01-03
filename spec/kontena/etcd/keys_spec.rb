@@ -159,6 +159,68 @@ describe Kontena::Etcd::Keys do
     end
   end
 
+  describe '#set' do
+    it "Omits the value argument by default" do
+      WebMock.stub_request(:put, 'http://127.0.0.1:2379/v2/keys/test').with(body: 'dir=true').to_return(
+        status: 200,
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-Etcd-Index' => '3',
+          'X-Raft-Index' => '0',
+          'X-Raft-Term' => '0',
+        },
+        body: {"action" => "set", "node" => {"key" => "/test", "modifiedIndex" => 3, "dir" => true}}.to_json,
+      )
+
+      expect(subject.set('/test', dir: true)).to have_attributes(key: '/test', dir: true)
+    end
+
+    it "Accepts a positional value argument" do
+      WebMock.stub_request(:put, 'http://127.0.0.1:2379/v2/keys/test').with(body: 'value=test').to_return(
+        status: 200,
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-Etcd-Index' => '3',
+          'X-Raft-Index' => '0',
+          'X-Raft-Term' => '0',
+        },
+        body: {"action" => "set", "node" => {"key" => "/test", "modifiedIndex" => 3, "value" => "test"}}.to_json,
+      )
+
+      expect(subject.set('/test', 'test')).to have_attributes(key: '/test', value: 'test')
+    end
+
+    it "Accepts a keyword value option" do
+      WebMock.stub_request(:put, 'http://127.0.0.1:2379/v2/keys/test').with(body: 'value=test').to_return(
+        status: 200,
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-Etcd-Index' => '3',
+          'X-Raft-Index' => '0',
+          'X-Raft-Term' => '0',
+        },
+        body: {"action" => "set", "node" => {"key" => "/test", "modifiedIndex" => 3, "value" => "test"}}.to_json,
+      )
+
+      expect(subject.set('/test', value: 'test')).to have_attributes(key: '/test', value: 'test')
+    end
+
+    it "Accepts a postional value argument and keyword options" do
+      WebMock.stub_request(:put, 'http://127.0.0.1:2379/v2/keys/test').with(body: 'prevExist=false&value=test').to_return(
+        status: 200,
+        headers: {
+          'Content-Type' => 'application/json',
+          'X-Etcd-Index' => '3',
+          'X-Raft-Index' => '0',
+          'X-Raft-Term' => '0',
+        },
+        body: {"action" => "set", "node" => {"key" => "/test", "modifiedIndex" => 3, "value" => "test"}}.to_json,
+      )
+
+      expect(subject.set('/test', 'test', prevExist: false)).to have_attributes(key: '/test', value: 'test')
+    end
+  end
+
   describe '#each' do
     it 'yields nodes' do
       WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test/').to_return(
