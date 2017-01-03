@@ -414,6 +414,8 @@ module Kontena::Etcd::Test
         headers = {
           'Content-Type' => 'application/json',
           'X-Etcd-Index' => @server.index,
+          'X-Raft-Index' => 0,
+          'X-Raft-Term' => 0,
         }
         return status, headers, object.to_json
       end

@@ -10,7 +10,7 @@ describe Kontena::Etcd::Test::FakeServer do
   end
 
   before :each do
-    WebMock.stub_request(:any, /localhost:2379/).to_rack(etcd_server.api)
+    WebMock.stub_request(:any, /127.0.0.1:2379/).to_rack(etcd_server.api)
 
     # clear etcd database
     etcd_server.reset!
@@ -70,7 +70,7 @@ describe Kontena::Etcd::Test::FakeServer do
       end
 
       it 'returns an error when using prevIndex for a non-existant node' do
-        expect{etcd.set('/kontena/test/quux', value: 'quux', prevIndex: 1)}.to raise_error(Etcd::KeyNotFound)
+        expect{etcd.set('/kontena/test/quux', value: 'quux', prevIndex: 1)}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
       end
 
       it 'logs a compareAndSwap event when using prevValue with the correct value' do
@@ -87,7 +87,7 @@ describe Kontena::Etcd::Test::FakeServer do
       end
 
       it 'returns an error when using prevValue with the wrong value' do
-        expect{etcd.set('/kontena/test/foo', value: 'foo', prevValue: 'foo2')}.to raise_error(Etcd::TestFailed)
+        expect{etcd.set('/kontena/test/foo', value: 'foo', prevValue: 'foo2')}.to raise_error(Kontena::Etcd::Error::TestFailed)
       end
 
       it 'logs a compareAndSwap event when using prevIndex with the correct index' do
@@ -104,14 +104,14 @@ describe Kontena::Etcd::Test::FakeServer do
       end
 
       it 'returns an error when using prevIndex with the wrong index' do
-        expect{etcd.set('/kontena/test/foo', value: 'foo', prevIndex: 2)}.to raise_error(Etcd::TestFailed)
+        expect{etcd.set('/kontena/test/foo', value: 'foo', prevIndex: 2)}.to raise_error(Kontena::Etcd::Error::TestFailed)
       end
     end
 
     describe '#delete' do
       it 'does not get a deleted node' do
         etcd.delete('/kontena/test/foo')
-        expect{etcd.get('/kontena/test/foo')}.to raise_error(Etcd::KeyNotFound)
+        expect{etcd.get('/kontena/test/foo')}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
       end
 
       it 'does not list a deleted node' do
@@ -177,7 +177,7 @@ describe Kontena::Etcd::Test::FakeServer do
 
       etcd_server.tick! 30
 
-      expect{etcd.get('/kontena/test/quux')}.to raise_error(Etcd::KeyNotFound)
+      expect{etcd.get('/kontena/test/quux')}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
 
       expect(etcd_server.nodes).to eq({})
       expect(etcd_server.logs).to eq [
