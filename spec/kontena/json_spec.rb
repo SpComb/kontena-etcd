@@ -205,36 +205,56 @@ describe Kontena::JSON::Model do
   end
 
   context "for an inherited model" do
-    let :child_model do
-      Class.new do
-        include Kontena::JSON::Model
-
-        json_attr :child
-      end
-    end
-
     let :parent_model do
-      Class.new(child_model) do
+      Class.new do
         include Kontena::JSON::Model
 
         json_attr :parent
       end
     end
 
-    it "Decodes from JSON" do
-      expect(parent_model.json_attrs[:child]).to be_a Kontena::JSON::Attribute
+    let :child_model do
+      Class.new(parent_model) do
+        include Kontena::JSON::Model
 
-      subject = parent_model.from_json('{"child": "value1", "parent": "value2"}')
-
-      expect(subject).to be_a parent_model
-      expect(subject.child).to eq "value1"
-      expect(subject.parent).to eq "value2"
+        json_attr :child
+      end
     end
 
-    it "Encodes to JSON" do
-      subject = parent_model.new(child: "value1", parent: "value2")
+    it "Decodes child model from JSON" do
+      expect(child_model.json_attrs[:child]).to be_a Kontena::JSON::Attribute
 
-      expect(subject.to_json).to eq '{"child":"value1","parent":"value2"}'
+      subject = child_model.from_json('{"child": "value1", "parent": "value2"}')
+
+      expect(subject).to be_a child_model
+      expect(subject.parent).to eq "value2"
+      expect(subject.child).to eq "value1"
+    end
+
+    it "Encodes child model to JSON" do
+      subject = child_model.new(child: "value1", parent: "value2")
+
+      expect(JSON.load(subject.to_json)).to eq({"child" => "value1", "parent" => "value2"})
+    end
+
+    it "Decodes parent model from JSON" do
+      expect(parent_model.json_attrs[:child]).to be_nil
+
+      subject = parent_model.from_json('{"parent": "value2"}')
+
+      expect(subject).to be_a parent_model
+      expect(subject.parent).to eq "value2"
+      expect{subject.child}.to raise_error(NoMethodError)
+    end
+
+    it "Encodes child model to JSON" do
+      subject = parent_model.new(parent: "value2")
+
+      expect(subject.to_json).to eq '{"parent":"value2"}'
+    end
+
+    it "Rejects child model attributes" do
+      expect{parent_model.new(child: "value1", parent: "value2")}.to raise_error(ArgumentError)
     end
   end
 end
