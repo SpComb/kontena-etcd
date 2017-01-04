@@ -29,23 +29,22 @@ module Kontena::Etcd::Test
       # empty
     end
 
-    # Return current etcd index. This increments on each modification?
+    # End the test, returning a final etcd index.
     #
-    # @return [Integer]
-    def get_index
-      return @client.get(@root).etcd_index
+    # The returned etcd index is guaranteed to be immediately waitable.
+    #
+    # Returns nil if the root does not exist.
+    #
+    # @return [Integer, nil]
+    def end!
+      @end_index ||= @client.set(@root, dir: true, prevExist: true).node.modified_index
     rescue Kontena::Etcd::Error::KeyNotFound => error
       return nil
     end
 
-    # Return an etcd index that represents something guaranteed to be immediately waitable
-    def touch_index
-      return @client.set(@root, dir: true, prevExist: true).node.modified_index
-    end
-
     # Uses etcd GET ?wait to yield modifications after from index up to index (exclusive)
     def get_logs(index, to)
-      while index < to
+      while index + 1 < to
         response = @client.watch(@root, recursive: true, waitIndex: index + 1, timeout: 1.0)
 
         index = response.node.modified_index
@@ -116,29 +115,34 @@ module Kontena::Etcd::Test
     #
     # @return [Boolean]
     def modified?
-      etcd_index = self.get_index
+      end_index = self.end!
 
       if @etcd_reset
         # reset, not loaded, should not exist
-        return !etcd_index.nil?
-      elsif etcd_index.nil?
+        return !end_index.nil?
+
+      elsif end_index.nil?
         # reset, loaded, deleted
         return true
       else
         # reset, loaded, still exists
-        return etcd_index > @etcd_index
+        # offset by -1 because end! touched it
+        return end_index - 1 > @etcd_index
       end
     end
 
     # Operations log
     def logs
-      # touch to get a guaranteed final etcd index to watch, even in the case of refresh operations
-      etcd_index = touch_index
+      raise "logs without reset!" unless @etcd_index
 
-      return nil if @etcd_index.nil? || etcd_index.nil?
+      # touch to get a guaranteed final etcd index to watch, even in the case of refresh operations
+      end_index = self.end!
+
+      # force-create for watch if missing
+      end_index = @client.set(@root, dir: true, prevExist: false).created_index unless end_index
 
       logs = []
-      get_logs(@etcd_index, etcd_index) do |action, node|
+      get_logs(@etcd_index, end_index) do |action, node|
         path = node.key
         path += '/' if node.directory?
 
