@@ -275,4 +275,26 @@ describe Kontena::JSON::Model do
       expect(subject_model.json_attrs).to have_key(:child)
     end
   end
+
+  context "for a model with a DateTime field" do
+    let :model do
+      Class.new do
+        include Kontena::JSON::Model
+
+        json_attr(:expiration) { |value| DateTime.parse(value) }
+      end
+    end
+
+    it "is nil per default" do
+      expect(model.from_json '{}').to have_attributes(expiration: nil)
+    end
+
+    it "parses an RFC 2616 datetime" do
+      expect(model.from_json '{"expiration":"2017-01-04T16:47:12.624350894Z"}').to have_attributes(expiration: DateTime.new(2017, 1, 4, 16, 47, 12))
+    end
+
+    it "raises on an invalid datetime" do
+      expect{model.from_json '{"expiration":"nope"}'}.to raise_error(ArgumentError, /invalid date/)
+    end
+  end
 end

@@ -14,7 +14,7 @@ module Kontena::JSON
     # @param model [Class<Kontena::JSON::Model>] load nested model
     # @param omitnil [Boolean] omit from JSON if nil
     # @param default [Object] default value. Used for both load() and initialize()
-    def initialize(cls, sym, name: nil, type: nil, model: nil, array_model: nil, omitnil: false, default: nil)
+    def initialize(cls, sym, name: nil, type: nil, model: nil, array_model: nil, omitnil: false, default: nil, &block)
       @class = cls
       @sym = sym
       @name = name || sym.to_s
@@ -23,6 +23,7 @@ module Kontena::JSON
       @array_model = array_model
       @omitnil = omitnil
       @default = default
+      @block = block
     end
 
     # Store attribute value to JSON object for encoding
@@ -50,6 +51,10 @@ module Kontena::JSON
         value = @model.load_json value
       elsif @array_model
         value = value.map{|array_value| @array_model.load_json array_value }
+      end
+
+      if @block && value
+        value = @block.call(value)
       end
 
       value
@@ -104,9 +109,9 @@ module Kontena::JSON
       # @see JSONAttr
       # @param sym [Symbol] instance variable
       # @param opts [Hash] JSONAttr options
-      def json_attr(sym, readonly: false, **options)
+      def json_attr(sym, readonly: false, **options, &block)
         @json_attrs ||= {}
-        @json_attrs[sym] = Attribute.new(self, sym, **options)
+        @json_attrs[sym] = Attribute.new(self, sym, **options, &block)
 
         if readonly
           attr_reader sym
