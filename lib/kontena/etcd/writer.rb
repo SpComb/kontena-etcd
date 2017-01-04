@@ -34,11 +34,10 @@ class Kontena::Etcd::Writer
       end
     end
 
-    @nodes.each do |key, value|
+    @nodes.each do |key, node|
       if !nodes[key]
-        logger.info "delete #{key} (#{value})"
+        remove(node)
 
-        @client.delete(key)
         @nodes.delete(key)
       end
     end
@@ -61,9 +60,20 @@ class Kontena::Etcd::Writer
 
   # Clear any written nodes from etcd
   def clear
-    @nodes.each do |key, value|
-      @client.delete(key)
+    @nodes.each do |key, node|
+      remove(node)
     end
     @nodes = { }
+  end
+
+  protected
+
+  # Remove node from etcd, if it is exclusively written by us
+  def remove(node)
+    logger.info "delete #{node.key}@#{node.modified_index}"
+
+    @client.delete(node.key, prevIndex: node.modified_index)
+  rescue Kontena::Etcd::Error::TestFailed => error
+    logger.warn "delete node=#{node.key}@#{node.modified_index}: #{error}"
   end
 end

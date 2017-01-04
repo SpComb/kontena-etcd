@@ -79,7 +79,7 @@ describe Kontena::Etcd::Writer do
 
         expect(etcd_server.logs).to eq [
           [:set, '/kontena/test1'],
-          [:delete, '/kontena/test1'],
+          [:compareAndDelete, '/kontena/test1'],
         ]
         expect(etcd_server.nodes).to eq({})
       end
@@ -92,7 +92,7 @@ describe Kontena::Etcd::Writer do
         expect(etcd_server.logs).to eq [
           [:set, '/kontena/test1'],
           [:set, '/kontena/test2'],
-          [:delete, '/kontena/test1'],
+          [:compareAndDelete, '/kontena/test1'],
         ]
         expect(etcd_server.nodes).to eq(
           '/kontena/test2' => { 'test' => 2 },
@@ -132,14 +132,63 @@ describe Kontena::Etcd::Writer do
     end
 
     describe '#clear' do
-      it "removes the node" do
+      it "removes the nodes" do
         subject.clear
 
         expect(etcd_server.logs).to eq [
           [:set, '/kontena/test1'],
-          [:delete, '/kontena/test1'],
+          [:compareAndDelete, '/kontena/test1'],
         ]
         expect(etcd_server.nodes).to eq({})
+      end
+    end
+
+    describe '#remove' do
+      it "removes an updated node" do
+        subject.update(
+          '/kontena/test1' => { 'test' => 1 }.to_json,
+        )
+
+        subject.clear
+
+        expect(etcd_server.logs).to eq [
+          [:set, '/kontena/test1'],
+          [:compareAndDelete, '/kontena/test1'],
+        ]
+        expect(etcd_server.nodes).to eq({})
+      end
+
+      it "removes a refreshed node" do
+        subject.update(
+          '/kontena/test1' => { 'test' => 1 }.to_json,
+        )
+
+        subject.refresh
+        subject.clear
+
+        expect(etcd_server.logs).to eq [
+          [:set, '/kontena/test1'],
+          [:compareAndDelete, '/kontena/test1'],
+        ]
+        expect(etcd_server.nodes).to eq({})
+      end
+
+      it "does not remove a modified node" do
+        subject.update(
+          '/kontena/test1' => { 'test' => 1 }.to_json,
+        )
+
+        etcd.set('/kontena/test1', { 'test' => 2}.to_json)
+
+        subject.clear
+
+        expect(etcd_server.logs).to eq [
+          [:set, '/kontena/test1'],
+          [:set, '/kontena/test1'],
+        ]
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test1' => { 'test' => 2 },
+        )
       end
     end
   end
