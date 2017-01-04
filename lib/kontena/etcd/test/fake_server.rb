@@ -411,6 +411,7 @@ module Kontena::Etcd::Test
       def respond(status, object)
         headers = {
           'Content-Type' => 'application/json',
+          'Date' => DateTime.now.httpdate,
           'X-Etcd-Index' => @server.index,
           'X-Raft-Index' => 0,
           'X-Raft-Term' => 0,

@@ -13,13 +13,14 @@ module Kontena::Etcd::Keys
     json_attr :node, model: Kontena::Etcd::Node
     json_attr :prev_node, name: 'prevNode', model: Kontena::Etcd::Node
 
-    attr_reader :etcd_index, :raft_index, :raft_term
+    attr_reader :date, :etcd_index, :raft_index, :raft_term
 
     def_delegators :@node, :key, :value, :modified_index, :created_index, :expiration, :ttl, :dir, :nodes
     def_delegators :@node, :directory?, :children
 
     def self.from_http(headers, body)
       response = new(
+        DateTime.parse(headers['Date']),
         etcd_index: Integer(headers['X-Etcd-Index']),
         raft_index: Integer(headers['X-Raft-Index']),
         raft_term: Integer(headers['X-Raft-Term']),
@@ -28,11 +29,13 @@ module Kontena::Etcd::Keys
       response
     end
 
+    # @param date [DateTime]
     # @param etcd_index [Integer]
     # @param raft_index [Integer]
     # @param raft_term [Integer]
     # @param **attrs JSON attrs
-    def initialize(etcd_index: nil, raft_index: nil, raft_term: nil, **attrs)
+    def initialize(date = nil, etcd_index: nil, raft_index: nil, raft_term: nil, **attrs)
+      @date = date
       @etcd_index = etcd_index
       @raft_index = raft_index
       @raft_term = raft_term

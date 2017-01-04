@@ -61,6 +61,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '1',
           'X-Raft-Index' => '2',
           'X-Raft-Term' => '3',
@@ -77,6 +78,22 @@ describe Kontena::Etcd::Keys do
       expect(response.node.value).to eq 'test'
     end
 
+    it "Parses the response timestamp" do
+      WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test').to_return(
+        status: 200,
+        headers: {
+          'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
+          'X-Etcd-Index' => '1',
+          'X-Raft-Index' => '2',
+          'X-Raft-Term' => '3',
+        },
+        body: '{"action":"get","node":{"key":"/test","value":"{\"test\":1}","expiration":"2017-01-04T16:47:12.624350894Z","ttl":28,"modifiedIndex":5983,"createdIndex":5981}}',
+      )
+
+      expect(subject.get('/test').date).to eq DateTime.new(2017, 1, 4, 17, 01, 05)
+    end
+
     context 'with debug logging' do
       before do
         subject.logger.level = Logger::DEBUG
@@ -87,6 +104,7 @@ describe Kontena::Etcd::Keys do
           status: 200,
           headers: {
             'Content-Type' => 'application/json',
+            'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
             'X-Etcd-Index' => '1',
             'X-Raft-Index' => '2',
             'X-Raft-Term' => '3',
@@ -102,6 +120,7 @@ describe Kontena::Etcd::Keys do
           status: 200,
           headers: {
             'Content-Type' => 'application/json',
+            'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
             'X-Etcd-Index' => '1',
             'X-Raft-Index' => '2',
             'X-Raft-Term' => '3',
@@ -137,6 +156,7 @@ describe Kontena::Etcd::Keys do
           status: 200,
           headers: {
             'Content-Type' => 'application/json',
+            'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
             'X-Etcd-Index' => '1',
             'X-Raft-Index' => '2',
             'X-Raft-Term' => '3',
@@ -165,6 +185,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '3',
           'X-Raft-Index' => '0',
           'X-Raft-Term' => '0',
@@ -180,6 +201,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '3',
           'X-Raft-Index' => '0',
           'X-Raft-Term' => '0',
@@ -195,6 +217,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '3',
           'X-Raft-Index' => '0',
           'X-Raft-Term' => '0',
@@ -210,6 +233,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '3',
           'X-Raft-Index' => '0',
           'X-Raft-Term' => '0',
@@ -227,6 +251,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '1',
           'X-Raft-Index' => '2',
           'X-Raft-Term' => '3',
@@ -242,6 +267,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '1',
           'X-Raft-Index' => '2',
           'X-Raft-Term' => '3',
@@ -260,6 +286,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '1',
           'X-Raft-Index' => '2',
           'X-Raft-Term' => '3',
@@ -275,6 +302,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '1',
           'X-Raft-Index' => '2',
           'X-Raft-Term' => '3',
@@ -298,6 +326,7 @@ describe Kontena::Etcd::Keys do
           status: 200,
           headers: {
             'Content-Type' => 'application/json',
+            'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
             'X-Etcd-Index' => '1',
             'X-Raft-Index' => '2',
             'X-Raft-Term' => '3',
@@ -316,6 +345,7 @@ describe Kontena::Etcd::Keys do
         status: 200,
         headers: {
           'Content-Type' => 'application/json',
+          'Date' => 'Wed, 04 Jan 2017 17:01:05 GMT',
           'X-Etcd-Index' => '1',
           'X-Raft-Index' => '2',
           'X-Raft-Term' => '3',
