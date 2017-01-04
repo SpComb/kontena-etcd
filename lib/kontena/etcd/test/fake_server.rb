@@ -353,7 +353,7 @@ module Kontena::Etcd::Test
       }
     end
 
-    def delete(key, recursive: nil, dir: nil)
+    def delete(key, recursive: nil, dir: nil, prevIndex: nil, prevValue: nil)
       key, node = read(key)
 
       if !node
@@ -364,12 +364,21 @@ module Kontena::Etcd::Test
         raise Error.new(403, 108, key), "Directory not empty"
       end
 
-      log! :delete, node
+      if prevIndex || prevValue
+        raise Error.new(412, 101, "[#{prevIndex} != #{node.modified_index}]"), "Compare failed" if prevIndex && node.modified_index != prevIndex
+        raise Error.new(412, 101, "[#{prevValue} != #{node.value}]"), "Compare failed" if prevValue && node.value != prevValue
+
+        action = :compareAndDelete
+      else
+        action = :delete
+      end
+
+      log! action, node
 
       remove(node)
 
       return {
-        'action' => 'delete',
+        'action' => action,
         'node' => node,
         'prevNode' => node,
       }
@@ -460,6 +469,8 @@ module Kontena::Etcd::Test
           respond 200, @server.delete(key,
             recursive: param_bool('recursive'),
             dir: param_bool('dir'),
+            prevIndex: param_int('prevIndex'),
+            prevValue: params['prevValue'],
           )
         rescue Error => error
           respond error.status, error

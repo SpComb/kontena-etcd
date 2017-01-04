@@ -120,6 +120,48 @@ describe Kontena::Etcd::Test::FakeServer do
           '/kontena/test/bar',
         ]
       end
+
+      it 'deletes a node with prevValue' do
+        expect{etcd.delete('/kontena/test/foo', prevValue: 'foo')}.to_not raise_error
+
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test/bar' => 'bar',
+        )
+        expect(etcd_server.logs).to eq [[:compareAndDelete, '/kontena/test/foo']]
+      end
+
+      it 'raises with a mismatching prevValue' do
+        expect{etcd.delete('/kontena/test/foo', prevValue: 'bar')}.to raise_error(Kontena::Etcd::Error::TestFailed) { |error|
+          expect(error.to_s).to eq "Compare failed: [bar != foo]"
+        }
+
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test/foo' => 'foo',
+          '/kontena/test/bar' => 'bar',
+        )
+        expect(etcd_server.logs).to eq []
+      end
+
+      it 'deletes a node with prevIndex' do
+        expect{etcd.delete('/kontena/test/foo', prevIndex: 1)}.to_not raise_error
+
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test/bar' => 'bar',
+        )
+        expect(etcd_server.logs).to eq [[:compareAndDelete, '/kontena/test/foo']]
+      end
+
+      it 'raises with a mismatching prevValue' do
+        expect{etcd.delete('/kontena/test/foo', prevIndex: 3)}.to raise_error(Kontena::Etcd::Error::TestFailed) { |error|
+          expect(error.to_s).to eq "Compare failed: [3 != 1]"
+        }
+
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test/foo' => 'foo',
+          '/kontena/test/bar' => 'bar',
+        )
+        expect(etcd_server.logs).to eq []
+      end
     end
   end
 
