@@ -78,7 +78,7 @@ class Kontena::Etcd::Writer
         @shared[key] = shared_node.expiration
 
       elsif shared_expiration && shared_expiration < response.date
-        logger.warn "expire shared node=#{key} at #{shared_expiration} < #{response.date}"
+        logger.warn "exclusive node=#{key} at #{shared_expiration} < #{response.date}"
 
         @shared.delete(key)
       end
