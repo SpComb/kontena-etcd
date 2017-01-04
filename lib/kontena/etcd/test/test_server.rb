@@ -83,7 +83,10 @@ module Kontena::Etcd::Test
     # Creates any directories as needed.
     #
     # @param tree [Hash<String, Object or String>]
+    # @return [Integer] etcd index after loading
     def load!(tree)
+      load_index = nil
+
       load_nodes(tree) do |key, value|
         if value == :directory
           response = @client.set(key, dir: true)
@@ -91,14 +94,19 @@ module Kontena::Etcd::Test
           response = @client.set(key, value)
         end
 
+        load_index = response.etcd_index
+      end
+
+      if load_index
         # record initial load index for modfied?
         @etcd_reset = false
-        @etcd_index = response.etcd_index
+        @etcd_index = load_index
       end
+
+      return load_index
     end
 
-    # Return the initial un-modified etcd index after the load!
-    def etcd_index
+    def start_index
       @etcd_index
     end
 

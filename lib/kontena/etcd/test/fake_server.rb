@@ -245,6 +245,7 @@ module Kontena::Etcd::Test
     # Creates any directories as needed.
     #
     # @param tree [Hash<String, Object or String>]
+    # @return [Integer] etcd index after loading
     def load!(tree)
       load_nodes(tree) do |key, value|
         if value == :directory
@@ -268,8 +269,7 @@ module Kontena::Etcd::Test
       end
     end
 
-    # Return etcd index at start of test
-    def etcd_index
+    def start_index
       @start_index
     end
 

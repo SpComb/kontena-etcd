@@ -169,7 +169,7 @@ describe Kontena::Etcd::Model do
         subject = TestEtcd.get('test1')
 
         expect(subject).to eq TestEtcd.new('test1', field: "value")
-        expect(subject.etcd_index).to be >= etcd_server.etcd_index
+        expect(subject.etcd_index).to be >= etcd_server.start_index
 
         expect(etcd_server).to_not be_modified
       end
@@ -201,7 +201,7 @@ describe Kontena::Etcd::Model do
         subject = TestEtcd.create('test1', field: "value")
 
         expect(subject).to eq TestEtcd.new('test1', field: "value")
-        expect(subject.etcd_index).to be > etcd_server.etcd_index
+        expect(subject.etcd_index).to be > etcd_server.start_index
 
         expect(etcd_server.logs).to eq [
           [:create, '/kontena/test/test1'],
@@ -361,7 +361,7 @@ describe Kontena::Etcd::Model do
         subject = TestEtcd.new('test1')
         subject.delete!
 
-        expect(subject.etcd_index).to be > etcd_server.etcd_index
+        expect(subject.etcd_index).to be > etcd_server.start_index
 
         expect(etcd_server.logs).to eq [
           [:delete, '/kontena/test/test1'],
