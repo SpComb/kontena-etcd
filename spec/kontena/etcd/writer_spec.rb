@@ -125,9 +125,19 @@ describe Kontena::Etcd::Writer do
       end
 
       it "raises if the node has been modified", :fake_etcd => true do
+        # external write conflict
         etcd.set '/kontena/test1', 'lollerskates'
 
         expect{subject.refresh}.to raise_error(Kontena::Etcd::Error::TestFailed)
+      end
+
+      it "marks the node as shared", :fake_etcd => true do
+        # external refresh
+        etcd.refresh '/kontena/test1', 30
+
+        expect{subject.refresh}.to_not raise_error
+
+        expect(subject.shared? '/kontena/test1').to_not be_nil
       end
     end
 
@@ -190,6 +200,58 @@ describe Kontena::Etcd::Writer do
           '/kontena/test1' => { 'test' => 2 },
         )
       end
+    end
+  end
+
+  context "for a shared node in etcd", :etcd => true do
+    subject { described_class.new(ttl: 30) }
+
+    before do
+      subject.update(
+        '/kontena/test1' => { 'test' => 1 }.to_json,
+      )
+
+      # external refresh
+      etcd.refresh '/kontena/test1', 30
+
+      expect{subject.refresh}.to_not raise_error
+
+      expect(subject.shared? '/kontena/test1').to_not be_nil
+    end
+
+    it "does not remove the shared node" do
+      subject.clear
+
+      expect(etcd_server.nodes).to eq(
+        '/kontena/test1' => { 'test' => 1 },
+      )
+    end
+
+    it "keeps it marked as shared if concurrently refreshed", :fake_etcd => true do
+      # tick a bit, but not enough to expire the old shared value
+      etcd_server.tick! 20
+      subject.refresh
+      expect(subject.shared? '/kontena/test1').to_not be_nil
+
+      # external refresh
+      etcd.refresh '/kontena/test1', 30
+
+      # tick a bit more, enough to expire the old shared value
+      etcd_server.tick! 20
+      subject.refresh
+      expect(subject.shared? '/kontena/test1').to_not be_nil
+    end
+
+    it "un-marks it as shared if it would have expired", :fake_etcd => true do
+      # tick a bit, but not enough to expire the old shared value
+      etcd_server.tick! 20
+      subject.refresh
+      expect(subject.shared? '/kontena/test1').to_not be_nil
+
+      # tick a bit more, enough to expire the old shared value
+      etcd_server.tick! 20
+      subject.refresh
+      expect(subject.shared? '/kontena/test1').to be_nil
     end
   end
 end

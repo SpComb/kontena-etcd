@@ -13,6 +13,7 @@ class Kontena::Etcd::Writer
     @nodes = { }
     @client = Kontena::Etcd::Client.from_env
     @ttl = ttl
+    @shared = { }
 
     logger.debug "connected to etcd=#{@client.uri} with version=#{@client.version}"
   end
@@ -20,6 +21,14 @@ class Kontena::Etcd::Writer
   # @return [Integer, nil]
   def ttl
     @ttl
+  end
+
+  def [](key)
+    return @nodes[key]
+  end
+
+  def shared?(key)
+    return @shared[key]
   end
 
   # Update set of path => value nodes to etcd
@@ -54,7 +63,27 @@ class Kontena::Etcd::Writer
 
     @nodes.each do |key, node|
       # value should not change
-      @nodes[key] = @client.refresh(key, @ttl, prevValue: node.value).node
+      response = @client.refresh(key, @ttl, prevValue: node.value)
+      shared_expiration = @shared[key]
+
+      if response.prev_node.modified_index != node.modified_index
+        shared_node = response.prev_node
+
+        if !shared_expiration
+          # log when node becomes shared
+          logger.warn "share node=#{node.key}@#{shared_node.modified_index}"
+        end
+
+        # updated shared state
+        @shared[key] = shared_node.expiration
+
+      elsif shared_expiration && shared_expiration < response.date
+        logger.warn "expire shared node=#{key} at #{shared_expiration} < #{response.date}"
+
+        @shared.delete(key)
+      end
+
+      @nodes[key] = response.node
     end
   end
 
@@ -70,6 +99,13 @@ class Kontena::Etcd::Writer
 
   # Remove node from etcd, if it is exclusively written by us
   def remove(node)
+    # TODO: re-test shared expiration without refresh?
+    if @shared[node.key]
+      logger.info "skip shared #{node.key}"
+
+      return
+    end
+
     logger.info "delete #{node.key}@#{node.modified_index}"
 
     @client.delete(node.key, prevIndex: node.modified_index)
