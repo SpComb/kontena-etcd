@@ -214,6 +214,20 @@ describe Kontena::Etcd::Test::FakeServer do
   end
 
   describe '#tick' do
+    it "returns a TTL for a node" do
+      etcd.set('/kontena/test/quux', 'quux', ttl: 30)
+
+      expect(etcd.get('/kontena/test/quux').node.ttl).to eq 30
+    end
+
+    it "ticks the TTL for a node" do
+      etcd.set('/kontena/test/quux', 'quux', ttl: 30)
+
+      etcd_server.tick! 10
+
+      expect(etcd.get('/kontena/test/quux').node.ttl).to eq 20
+    end
+
     it "expires a node" do
       etcd.set('/kontena/test/quux', 'quux', ttl: 30)
 

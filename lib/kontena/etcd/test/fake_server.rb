@@ -56,6 +56,53 @@ end
 =end
 module Kontena::Etcd::Test
   class FakeServer < ServerBase
+    class Clock
+      def initialize
+        @time = Time.now
+      end
+
+      def to_s
+        @time.to_datetime.to_s
+      end
+
+      def to_http
+        @time.to_datetime.httpdate
+      end
+
+      def time
+        @time
+      end
+
+      # @param offset [Number]
+      def tick!(offset)
+        @time += offset
+      end
+
+      # @param ttl [Number, nil]
+      def expire(ttl)
+        ttl ? ClockTime.new(self, @time + ttl) : nil
+      end
+    end
+
+    class ClockTime
+      def initialize(clock, time)
+        @clock = clock
+        @time = time
+      end
+
+      def expired?
+        @time <= @clock.time
+      end
+
+      def ttl
+        @time - @clock.time
+      end
+
+      def to_s
+        @time.to_datetime.to_s
+      end
+    end
+
     class Node
         attr_reader :key, :created_index, :modified_index, :value, :nodes, :expire
 
@@ -101,6 +148,11 @@ module Kontena::Etcd::Test
             'createdIndex' => @created_index,
             'modifiedIndex' => @modified_index,
           }
+
+          if @expire
+            obj['ttl'] = @expire.ttl
+            obj['expiration'] = @expire.to_s
+          end
 
           if directory?
             obj['dir'] = true
@@ -164,7 +216,7 @@ module Kontena::Etcd::Test
     def write(path, ttl: nil, **attrs)
       @index += 1
 
-      @nodes[path] = node = Node.new(path, @index, expire: ttl ? @clock + ttl : nil, **attrs)
+      @nodes[path] = node = Node.new(path, @index, expire: @clock.expire(ttl), **attrs)
 
       # create parent dirs
       child = node
@@ -180,7 +232,7 @@ module Kontena::Etcd::Test
     def update(node, value, ttl: nil)
       @index += 1
 
-      node.update(@index, value, expire: ttl ? @clock + ttl : nil)
+      node.update(@index, value, expire: @clock.expire(ttl))
     end
 
     # recursively unlink node and any child nodes
@@ -234,7 +286,7 @@ module Kontena::Etcd::Test
       @nodes = {}
       @logs = []
       @modified = false
-      @clock = 0.0
+      @clock = Clock.new
 
       mkdir('/')
       @start_index = @index
@@ -259,14 +311,18 @@ module Kontena::Etcd::Test
 
     # Advance clock and expire nodes
     def tick!(offset)
-      @clock += offset
+      @clock.tick! offset
 
       walk do |node|
-        next unless node.expire && @clock >= node.expire
+        next unless node.expire && node.expire.expired?
 
         remove(node)
         log! :expire, node
       end
+    end
+
+    def clock
+      @clock
     end
 
     def start_index
@@ -420,7 +476,7 @@ module Kontena::Etcd::Test
       def respond(status, object)
         headers = {
           'Content-Type' => 'application/json',
-          'Date' => DateTime.now.httpdate,
+          'Date' => @server.clock.to_http,
           'X-Etcd-Index' => @server.index,
           'X-Raft-Index' => 0,
           'X-Raft-Term' => 0,
