@@ -271,6 +271,27 @@ describe Kontena::Etcd::Keys do
     end
   end
 
+  describe '#get_index' do
+    context "for a real etcd server" do
+
+      it "Returns the starting index" do
+        # fun fact: etcd does not return any key for the root node
+        WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/').to_return(
+          status: 200,
+          headers: {
+            'Content-Type' => 'application/json',
+            'X-Etcd-Index' => '1',
+            'X-Raft-Index' => '2',
+            'X-Raft-Term' => '3',
+          },
+          body: {'action' => 'get', 'node' => { 'dir' => true}}.to_json,
+        )
+
+        expect(subject.get_index).to eq 1
+      end
+    end
+  end
+
   describe '#each' do
     it 'yields nodes' do
       WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test/').to_return(

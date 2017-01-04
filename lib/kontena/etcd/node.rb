@@ -12,6 +12,11 @@ class Kontena::Etcd::Node
   json_attr :dir
   json_attr :nodes, array_model: Kontena::Etcd::Node
 
+  def key
+    # fun fact: etcd omits the key for the root node
+    @key || '/'
+  end
+
   # @raise [RuntimeError] this node is not a directory
   # @return [Array<Kontena::Etcd::Node>] directory nodes
   def nodes
