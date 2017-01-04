@@ -7,7 +7,7 @@ class Kontena::Etcd::Node
   json_attr :value
   json_attr :modified_index, name: "modifiedIndex"
   json_attr :created_index, name: "createdIndex"
-  json_attr :expiration
+  json_attr(:expiration) { |value| DateTime.parse(value) }
   json_attr :ttl
   json_attr :dir
   json_attr :nodes, array_model: Kontena::Etcd::Node
