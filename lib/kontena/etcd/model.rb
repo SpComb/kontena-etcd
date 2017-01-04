@@ -342,8 +342,8 @@ module Kontena::Etcd::Model
     # @param key [String] key values
     # @yield [object]
     # @yieldparam object [EtcdModel]
-    def each(*key)
-      objects(*key).each
+    def each(*key, &block)
+      objects(*key).each(&block)
     end
 
     # List all objects under the given (partial) key prefix

@@ -318,6 +318,37 @@ describe Kontena::Etcd::Model do
       expect(TestEtcd.list()).to be_empty
     end
 
+    describe '#each' do
+      it "Lists an empty directory from etcd", :etcd => true do
+        etcd_server.load!(
+          '/kontena/test/' => nil,
+        )
+
+        expect{|block| TestEtcd.each(&block)}.to_not yield_control
+      end
+
+      it "Lists one node from etcd", :etcd => true do
+        etcd_server.load!(
+          '/kontena/test/test1' => { 'field' => "value 1" },
+        )
+
+        expect{|block| TestEtcd.each(&block)}.to yield_with_args(TestEtcd.new('test1', field: "value 1"))
+      end
+
+      it "Lists two nodes from etcd", :etcd => true do
+        etcd_server.load!(
+          '/kontena/test/test1' => { 'field' => "value 1" },
+          '/kontena/test/test2' => { 'field' => "value 2" },
+
+        )
+
+        expect{|block| TestEtcd.each(&block)}.to yield_successive_args(
+          TestEtcd.new('test1', field: "value 1"),
+          TestEtcd.new('test2', field: "value 2"),
+        )
+      end
+    end
+
     describe '#delete' do
       it 'deletes instance from etcd', :etcd => true do
         etcd_server.load!(
