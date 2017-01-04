@@ -179,6 +179,6 @@ describe Kontena::Etcd do
 end
 ```
 
-### Issues
+### Known Issues
 
-* The tests are currently hardcoded to assume a `/kontena` prefix for all keys
+* #4 The tests are currently hardcoded to assume a `/kontena` prefix for all keys
