@@ -72,75 +72,96 @@ The refresh operation also serves to detect any write conflicts.
 
 ### `Kontena::Etcd::Model`
 
-Map Ruby objects from JSON objects in etcd:
+Map Ruby objects from JSON objects in etcd using class mixins/definitions:
 
 ```ruby
-class MyModel
+class Example
   include Kontena::JSON::Model
   include Kontena::Etcd::Model
 
-  etcd_path '/kontena/examples/:foo'
+  etcd_path '/kontena/example/:foo'
   json_attr :bar
-end
-
-MyModel.create('foo1', bar: 'bar2')
-
-my_model = MyModel.get('foo1')
-
-MyModel.each do |my_model|
-  puts "#{my_model.foo}=#{my_mode.bar}"
 end
 ```
 
+Allows operations such as the following:
+
+```ruby
+Example.delete
+
+Example.create('foo1', bar: 'bar2')
+
+Example.each do |example|
+  puts "#{example.foo}=#{example.bar}"
+end
+
+example = Example.get('foo1')
+```
+
+With resulting output:
+
+```
+D, [2017-01-04T13:22:02.004864 #7431] DEBUG -- Kontena::Etcd::Client: delete /kontena/example/ {:recursive=>true}: delete /kontena/example/@1450:
+D, [2017-01-04T13:22:02.011548 #7431] DEBUG -- Kontena::Etcd::Client: set /kontena/example/foo1 {:prevExist=>false, :value=>"{\"bar\":\"bar2\"}"}: create /kontena/example/foo1@1451: {"bar":"bar2"}
+D, [2017-01-04T13:22:02.012594 #7431] DEBUG -- Kontena::Etcd::Client: get /kontena/example/ {}: get /kontena/example/@1451: foo1
+foo1=bar2
+D, [2017-01-04T13:22:02.013462 #7431] DEBUG -- Kontena::Etcd::Client: get /kontena/example/foo1 {}: get /kontena/example/foo1@1451: {"bar":"bar2"}
+```
+
 ## Testing
-Includes [RSpec](http://rspec.info/) support for writing tests against etcd, allowing specs to expect on the result of any etcd modifications, and mock behavior such as TTL expiration.
+Includes [RSpec](http://rspec.info/) support for writing tests against etcd, allowing specs to expect on the resulting etcd modifications.
 
 Tests can be run using either an internal fake `etcd` API implementation, or a real `etcd` server.
-
+The fake `etcd` server collects a log of any operations that modify the fake etcd store.
 When running against a real `etcd` server, the `modified?` and `logs` helpers use the `X-Etcd-Index` and recursive watches to find any operations performed by the example.
 
 ```ruby
 require 'rspec'
 require 'kontena/etcd/rspec'
 
-describe MyModel do
+describe Example do
   it "Reads a node from etcd", :etcd => true do
     etcd_server.load!(
-      '/kontena/examples/foo/foo1' => {'bar' => 'bar2'},
+      '/kontena/example/foo1' => {'bar' => 'bar2'},
     )
 
-    expect(MyModel.get('foo1').bar).to eq 'bar2'
+    expect(described_class.get('foo1').bar).to eq 'bar2'
 
     expect(etcd_server).to_not be_modified
   end
 
   it "Writes itself to etcd", :etcd => true do
-    MyModel.create('foo1', bar: 'bar2')
+    described_class.create('foo1', bar: 'bar2')
 
     expect(etcd_server).to be_modified
-    expect(etcd_server.logs) to eq [
-      [:set, '/kontena/examples/foo/foo1'],
+    expect(etcd_server.logs).to eq [
+      [:create, '/kontena/example/foo1'],
     ]
     expect(etcd_server.list).to eq Set.new([
       '/kontena/',
-      '/kontena/examples/',
-      '/kontena/examples/foo/',
-      '/kontena/examples/foo/foo1',
+      '/kontena/example/',
+      '/kontena/example/foo1',
     ])
     expect(etcd_server.nodes).to eq(
-      '/kontena/examples/foo/foo1' => {'bar' => 'bar2'},
+      '/kontena/example/foo1' => {'bar' => 'bar2'},
     )
   end
 end
+```
 
-# Mocking node expiry only works against the fake etcd server
-it "Expires a node from etcd", :etcd => true, :etcd_fake => true do
-  etcd.set('/kontena/test', 'test-value', ttl: 30)
+When running against the fake `etcd` server, additional behavior such as TTL expiration can be tested:
 
-  expect(etcd.get('/kontena/test')).to have_attributes(value: 'test-value')
+```ruby
+describe Kontena::Etcd do
+  # Mocking node expiry only works against the fake etcd server
+  it "Expires a node from etcd", :etcd => true, :etcd_fake => true do
+    etcd.set('/kontena/test', 'test-value', ttl: 30)
 
-  etcd_server.tick! 30
+    expect(etcd.get('/kontena/test')).to have_attributes(value: 'test-value')
 
-  expect{etcd.get('/kontena/test')}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
+    etcd_server.tick! 30
+
+    expect{etcd.get('/kontena/test')}.to raise_error(Kontena::Etcd::Error::KeyNotFound)
+  end
 end
 ```
