@@ -37,7 +37,7 @@ describe Kontena::Etcd::Writer do
     end
   end
 
-  context "for etcd one nodes set", :etcd => true do
+  context "for etcd with one node set", :etcd => true do
     subject { described_class.new(ttl: 30) }
 
     before do
@@ -103,7 +103,7 @@ describe Kontena::Etcd::Writer do
     # using refresh breaks watch against test etcd (timeout)
     # TODO: testing TTLs also requires the fake etcd clock
     describe '#refresh' do
-      it "updates the node", :test_etcd => false do
+      it "updates the node" do
         subject.refresh
 
         expect(etcd_server.logs).to eq [

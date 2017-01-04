@@ -38,14 +38,24 @@ module Kontena::Etcd::Test
       return nil
     end
 
-    # Uses etcd GET ?wait to yield modifications after from index up to and including to index
+    # Return an etcd index that represents something guaranteed to be immediately waitable
+    def touch_index
+      return @client.set(@root, dir: true, prevExist: true).node.modified_index
+    end
+
+    # Uses etcd GET ?wait to yield modifications after from index up to index (exclusive)
     def get_logs(index, to)
       while index < to
         response = @client.watch(@root, recursive: true, waitIndex: index + 1, timeout: 1.0)
 
-        yield response.action, response.node
-
         index = response.node.modified_index
+
+        if index < to
+          yield response.action, response.node
+        else
+          # when refreshing, a wait will return the final #touch_index action
+          return
+        end
       end
     rescue Net::ReadTimeout => error
       fail "Unexpected end of watch stream at #{index} before #{to}"
@@ -114,7 +124,8 @@ module Kontena::Etcd::Test
 
     # Operations log
     def logs
-      etcd_index = get_index
+      # touch to get a guaranteed final etcd index to watch, even in the case of refresh operations
+      etcd_index = touch_index
 
       return nil if @etcd_index.nil? || etcd_index.nil?
 
