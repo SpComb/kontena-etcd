@@ -100,8 +100,6 @@ describe Kontena::Etcd::Writer do
       end
     end
 
-    # using refresh breaks watch against test etcd (timeout)
-    # TODO: testing TTLs also requires the fake etcd clock
     describe '#refresh' do
       it "updates the node" do
         subject.refresh
