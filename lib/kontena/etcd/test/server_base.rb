@@ -39,8 +39,9 @@ module Kontena::Etcd::Test
     # Creates any directories as needed.
     #
     # @param tree [Hash<String, Object or String>]
+    # @param ttl [Integer, nil]
     # @return [Integer] etcd index after loading
-    def load!(tree)
+    def load!(tree, ttl: nil)
       fail NotImplementedError
     end
 

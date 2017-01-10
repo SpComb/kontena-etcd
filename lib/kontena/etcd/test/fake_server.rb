@@ -298,12 +298,12 @@ module Kontena::Etcd::Test
     #
     # @param tree [Hash<String, Object or String>]
     # @return [Integer] etcd index after loading
-    def load!(tree)
+    def load!(tree, ttl: nil)
       load_nodes(tree) do |key, value|
         if value == :directory
-          write key, nodes: {}
+          write key, nodes: {}, ttl: ttl
         else
-          write key, value: value
+          write key, value: value, ttl: ttl
         end
       end
       @start_index = @index

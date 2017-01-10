@@ -83,14 +83,14 @@ module Kontena::Etcd::Test
     #
     # @param tree [Hash<String, Object or String>]
     # @return [Integer] etcd index after loading
-    def load!(tree)
+    def load!(tree, ttl: nil)
       load_index = nil
 
       load_nodes(tree) do |key, value|
         if value == :directory
-          response = @client.set(key, dir: true)
+          response = @client.set(key, dir: true, ttl: ttl)
         else
-          response = @client.set(key, value)
+          response = @client.set(key, value, ttl: ttl)
         end
 
         load_index = response.etcd_index
