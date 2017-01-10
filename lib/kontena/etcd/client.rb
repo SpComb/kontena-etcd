@@ -40,6 +40,15 @@ class Kontena::Etcd::Client
     @uri.port
   end
 
+  # @param method [String] HTTP request method
+  # @param path [String] Absolute HTTP path
+  # @param query [Hash, nil] URL ?query parameters
+  # @param form [Hash, nil] Body application/x-www-form-urlencoded parameters
+  # @param expects [Array<Integer>] Expected HTTP response status
+  # @param error_class [Class<Kontena::Etcd::Error>] class having #from_http method
+  # @see Kontena::Etcd::Error::KeysError#from_http
+  # @raise [error_class] decoded JSON error response per error_class.from_http(...)
+  # @raise [Kontena::Etcd::Error::ClientError] unknown HTTP errors
   def http_request(method, path, query: nil, form: nil, expects: [200, 201], error_class: nil)
     headers = {}
     body = nil

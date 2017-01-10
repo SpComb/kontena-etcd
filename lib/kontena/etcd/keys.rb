@@ -49,6 +49,9 @@ module Kontena::Etcd::Keys
     return '/v2/keys' + key
   end
 
+  # @raise [Kontena::Etcd::Error]
+  # @raise [Kontena::Etcd::Error::KeysError]
+  # @return [Kontena::Etcd::Keys::Response]
   def keys_request(op, key, method:, **opts)
     params = opts[:form] || opts[:query]
 

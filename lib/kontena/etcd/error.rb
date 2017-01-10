@@ -7,6 +7,7 @@ require 'json'
 # Note that the cause JSON field conflicts with Exception#cause, and has been renamed to reason.
 module Kontena::Etcd
   class Error < StandardError
+    # HTTP client error without etcd-level semantics
     class ClientError < Error
 
     end
