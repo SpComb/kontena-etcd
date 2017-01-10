@@ -25,6 +25,37 @@ describe Kontena::Etcd::Writer do
         expect(etcd_server.nodes).to eq(
           '/kontena/test1' => { 'test' => 1 },
         )
+        expect(subject.shared? '/kontena/test1').to be_nil
+      end
+
+      it "overrides a conflicting node" do
+        etcd_server.load!({
+          '/kontena/test1' => { 'test' => 0 },
+        }, ttl: 30)
+
+        subject.update(
+          '/kontena/test1' => { 'test' => 1 }.to_json,
+        )
+        expect(subject.shared? '/kontena/test1').to be_nil
+
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test1' => { 'test' => 1 },
+        )
+      end
+
+      it "detects a shared node" do
+        etcd_server.load!({
+          '/kontena/test1' => { 'test' => 1 },
+        }, ttl: 30)
+
+        subject.update(
+          '/kontena/test1' => { 'test' => 1 }.to_json,
+        )
+        expect(subject.shared? '/kontena/test1').to_not be_nil
+
+        expect(etcd_server.nodes).to eq(
+          '/kontena/test1' => { 'test' => 1 },
+        )
       end
     end
 

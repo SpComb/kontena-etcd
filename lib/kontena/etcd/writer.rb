@@ -40,6 +40,13 @@ class Kontena::Etcd::Writer
         response = @client.set(key, value, ttl: @ttl)
 
         @nodes[key] = response.node
+
+        # initialize @shared from prev_node
+        if response.prev_node && response.prev_node.value == response.node.value && response.prev_node.expiration
+          logger.warn "share node=#{response.node.key}@#{response.prev_node.modified_index}"
+
+          @shared[key] = response.prev_node.expiration
+        end
       end
     end
 
