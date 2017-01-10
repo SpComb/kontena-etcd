@@ -40,7 +40,7 @@ class Kontena::Etcd::Client
     @uri.port
   end
 
-  def http_request(method, path, query: nil, form: nil, expects: [200, 201])
+  def http_request(method, path, query: nil, form: nil, expects: [200, 201], error_class: nil)
     headers = {}
     body = nil
 
@@ -54,6 +54,15 @@ class Kontena::Etcd::Client
       body: body,
       expects: expects,
     )
+  rescue Excon::Error::HTTPStatus => error
+    if error.response.headers['Content-Type'] == 'application/json' && error_class
+      raise error_class.from_http(error.response.status, error.response.body)
+    else
+      # TODO: any details from the response body?
+      raise Kontena::Etcd::Error::ClientError, error.response.reason_phrase
+    end
+  rescue Excon::Error => error
+    raise Kontena::Etcd::Error::ClientError, error
   end
 
   # Query and parse the etcd daemon version

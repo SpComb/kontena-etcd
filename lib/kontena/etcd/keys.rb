@@ -52,8 +52,14 @@ module Kontena::Etcd::Keys
   def keys_request(op, key, method:, **opts)
     params = opts[:form] || opts[:query]
 
-    http_response = self.http_request(method, self.keys_path(key), **opts)
-
+    http_response = self.http_request(method, self.keys_path(key),
+      error_class: Kontena::Etcd::Error::KeysError,
+      **opts
+    )
+  rescue Kontena::Etcd::Error::KeysError => error
+    logger.debug { "#{op} #{key} #{params}: error #{error.class} #{error.reason}@#{error.index}: #{error.message}" }
+    raise
+  else
     response = Response.from_http(http_response.headers, http_response.body)
     logger.debug {
       path = response.node.key
@@ -71,16 +77,6 @@ module Kontena::Etcd::Keys
       end
     }
     return response
-  rescue Excon::Error::HTTPStatus => error
-    if error.response.headers['Content-Type'] == 'application/json'
-      error = Kontena::Etcd::Error.from_http(error.response.status, error.response.body)
-
-      logger.debug { "#{op} #{key} #{params}: error #{error.class} #{error.reason}@#{error.index}: #{error.message}" }
-
-      raise error
-    else
-      raise
-    end
   end
 
   # @param key [String]

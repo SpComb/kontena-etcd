@@ -18,22 +18,26 @@ describe Kontena::Etcd::Keys do
   end
 
   describe '#keys_request' do
-    it 'raises unknown errors' do
-      WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test').to_raise(Excon::Error::Timeout.new)
+    it 'raises client errors' do
+      WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test').to_raise(Excon::Error::Timeout.new("this was a timeout"))
 
-      expect{subject.keys_request(:get, '/test', method: 'GET')}.to raise_error(Excon::Error::Timeout)
+      expect{subject.keys_request(:get, '/test', method: 'GET')}.to raise_error(Kontena::Etcd::Error::ClientError, /this was a timeout/) do |error|
+        expect(error.cause).to be_a Excon::Error::Timeout
+      end
     end
 
     it 'raises http errors' do
       WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test').to_return(
-        status: 503,
+        status: [500, "Internal Server Error"],
         body: "etcd is broken"
       )
 
-      expect{subject.keys_request(:get, '/test', method: 'GET')}.to raise_error(Excon::Error::HTTPStatus)
+      expect{subject.keys_request(:get, '/test', method: 'GET')}.to raise_error(Kontena::Etcd::Error::ClientError, /Internal Server Error/) do |error|
+        expect(error.cause).to be_a Excon::Error::HTTPStatus
+      end
     end
 
-    it 'raises etcd errors' do
+    it 'raises etcd keys errors' do
       WebMock.stub_request(:get, 'http://127.0.0.1:2379/v2/keys/test').to_return(
         status: 404,
         headers: { 'Content-Type' => 'application/json' },

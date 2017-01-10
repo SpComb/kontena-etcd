@@ -7,34 +7,55 @@ require 'json'
 # Note that the cause JSON field conflicts with Exception#cause, and has been renamed to reason.
 module Kontena::Etcd
   class Error < StandardError
-    include Kontena::JSON::Model
+    class ClientError < Error
 
-    json_attr :error_code, name: 'errorCode'
-    json_attr :index
-    json_attr :message
-    json_attr :reason, name: 'cause'
+    end
 
-    class KeyNotFound < Error; end
-    class TestFailed < Error; end
-    class NotFile < Error; end
-    class NotDir < Error; end
-    class NodeExist < Error; end
-    class RootROnly < Error; end
-    class DirNotEmpty < Error; end
+    # /v2/keys HTTP error response
+    class KeysError < Error
+      include Kontena::JSON::Model
 
-    class PrevValueRequired < Error; end
-    class TTLNaN < Error; end
-    class IndexNaN < Error; end
-    class InvalidField < Error; end
-    class InvalidForm < Error; end
+      # @param status [Integer] HTTP response status
+      # @param body [String] HTTP response body
+      # @return [Kontena::Etcd::Error]
+      def self.from_http(status, body)
+        object = JSON.parse(body)
 
-    class RaftInternal < Error; end
-    class LeaderElect < Error; end
+        cls = KEYS_ERRORS[object['errorCode']] || Error
+        cls.load_json object
+      end
 
-    class WatcherCleared < Error; end
-    class EventIndexCleared < Error; end
+      json_attr :error_code, name: 'errorCode'
+      json_attr :index
+      json_attr :message
+      json_attr :reason, name: 'cause'
 
-    ERRORS = {
+      def to_s
+        return "#{@message}: #{@reason}"
+      end
+    end
+
+    class KeyNotFound < KeysError; end # HTTP 404
+    class TestFailed < KeysError; end
+    class NotFile < KeysError; end
+    class NotDir < KeysError; end
+    class NodeExist < KeysError; end
+    class RootROnly < KeysError; end
+    class DirNotEmpty < KeysError; end
+
+    class PrevValueRequired < KeysError; end
+    class TTLNaN < KeysError; end
+    class IndexNaN < KeysError; end
+    class InvalidField < KeysError; end
+    class InvalidForm < KeysError; end
+
+    class RaftInternal < KeysError; end # HTTP 500
+    class LeaderElect < KeysError; end
+
+    class WatcherCleared < KeysError; end
+    class EventIndexCleared < KeysError; end
+
+    KEYS_ERRORS = {
       100 => KeyNotFound,
       101 => TestFailed,
       102 => NotFile,
@@ -56,18 +77,5 @@ module Kontena::Etcd
       401 => EventIndexCleared,
     }
 
-    # @param status [Integer] HTTP response status
-    # @param body [String] HTTP response body
-    # @return [Kontena::Etcd::Error]
-    def self.from_http(status, body)
-      object = JSON.parse(body)
-
-      cls = ERRORS[object['errorCode']] || Error
-      cls.load_json object
-    end
-
-    def to_s
-      return "#{@message}: #{@reason}"
-    end
   end
 end
