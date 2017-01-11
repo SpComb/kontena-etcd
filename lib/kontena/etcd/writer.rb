@@ -35,15 +35,20 @@ class Kontena::Etcd::Writer
   def update(nodes)
     nodes.each_pair do |key, value|
       if !(node = @nodes[key]) || value != node.value
-        logger.info "set #{key}: #{value}"
 
         response = @client.set(key, value, ttl: @ttl)
 
         @nodes[key] = response.node
 
         # initialize @shared from prev_node
-        if response.prev_node && response.prev_node.value == response.node.value && response.prev_node.expiration
-          logger.warn "share node=#{response.node.key}@#{response.prev_node.modified_index}"
+        if !response.prev_node
+          logger.info "update #{key}: create #{value}"
+
+        elsif response.prev_node.value != response.node.value
+          logger.info "update #{key}: update #{value}"
+
+        elsif response.prev_node.expiration
+          logger.info "update #{key}: share #{value}@#{response.prev_node.modified_index}"
 
           @shared[key] = response.prev_node.expiration
         end
