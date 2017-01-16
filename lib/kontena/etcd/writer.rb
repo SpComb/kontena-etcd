@@ -38,6 +38,7 @@ class Kontena::Etcd::Writer
 
         response = @client.set(key, value, ttl: @ttl)
 
+        # XXX: this needs to use the same logic as in refresh, if we update our own node
         @nodes[key] = response.node
 
         # initialize @shared from prev_node
@@ -83,14 +84,14 @@ class Kontena::Etcd::Writer
 
         if !shared_expiration
           # log when node becomes shared
-          logger.warn "share node=#{node.key}@#{shared_node.modified_index}"
+          logger.warn "refresh #{key}: share @#{shared_node.modified_index}"
         end
 
         # updated shared state
         @shared[key] = shared_node.expiration
 
       elsif shared_expiration && shared_expiration < response.date
-        logger.warn "exclusive node=#{key} at #{shared_expiration} < #{response.date}"
+        logger.warn "refresh #{key}: exclusive @#{response.node.modified_index}"
 
         @shared.delete(key)
       end
@@ -113,12 +114,12 @@ class Kontena::Etcd::Writer
   def remove(node)
     # TODO: re-test shared expiration without refresh?
     if @shared[node.key]
-      logger.info "skip shared #{node.key}"
+      logger.info "delete #{node.key}: skip shared @#{node.modified_index}"
 
       return
     end
 
-    logger.info "delete #{node.key}@#{node.modified_index}"
+    logger.info "delete #{node.key}: delete exclusive @#{node.modified_index}"
 
     @client.delete(node.key, prevIndex: node.modified_index)
   rescue Kontena::Etcd::Error::TestFailed => error
